@@ -3,55 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Name | Portfolio</title>
+    <title>Michael Lazarek | Technical Portfolio</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
+<body class="bg-[#0f0f0f] text-gray-300 font-sans selection:bg-indigo-500/30">
 
-    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto">
-        <h1 class="text-2xl font-bold tracking-tighter">YOUR NAME.</h1>
-        <div class="space-x-6">
-            <a href="#work" class="hover:text-blue-600 transition">Work</a>
-            <a href="#about" class="hover:text-blue-600 transition">About</a>
-            <a href="mailto:your@email.com" class="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition">Contact</a>
+    <nav class="max-w-5xl mx-auto px-6 py-12 flex justify-between items-center">
+        <div class="text-white font-mono tracking-tighter text-sm border-l-2 border-indigo-600 pl-4 uppercase">
+            Michael Lazarek // Dev_Log
+        </div>
+        <div class="text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100 transition">
+            <a href="mailto:vextea@proton.me" class="border border-white/20 px-4 py-2 rounded-sm hover:bg-white hover:text-black">Contact</a>
         </div>
     </nav>
 
-    <section class="max-w-6xl mx-auto px-6 py-24 text-center">
-        <h2 class="text-5xl md:text-7xl font-extrabold mb-6 italic">I create digital experiences that matter.</h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto mb-10">
-            Based in [Location], I’m a [Your Role] focused on building clean, functional, and user-centric solutions.
+    <header class="max-w-5xl mx-auto px-6 py-16">
+        <h1 class="text-4xl font-bold text-white mb-6">Systems Architecture & ML</h1>
+        <p class="text-lg max-w-3xl leading-relaxed opacity-70 italic font-light">
+            System(bootstrap).py houses data for 'Endministrator'—a custom AI working in tandem with 'Hiroma' via a custom conlang. Together, they form a playground for testing crafted catastrophes designed to fail, providing unique insights into emergent system behaviors.
         </p>
-        <div class="flex justify-center gap-4">
-            <span class="px-3 py-1 bg-gray-200 rounded-full text-sm">Product Design</span>
-            <span class="px-3 py-1 bg-gray-200 rounded-full text-sm">Web Development</span>
-            <span class="px-3 py-1 bg-gray-200 rounded-full text-sm">Copywriting</span>
-        </div>
-    </section>
+    </header>
 
-    <section id="work" class="max-w-6xl mx-auto px-6 py-20 border-t border-gray-200">
-        <h3 class="text-3xl font-bold mb-12 uppercase tracking-widest text-gray-400 text-sm">Selected Work</h3>
-        <div class="grid md:grid-cols-2 gap-12">
-            <div class="group cursor-pointer">
-                <div class="aspect-video bg-gray-200 rounded-xl overflow-hidden mb-4">
-                    <img src="https://via.placeholder.com/600x400" alt="Project 1" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+    <main class="max-w-5xl mx-auto px-6 mb-24">
+        
+        <section class="py-12 border-t border-white/10">
+            <h2 class="text-xs uppercase tracking-[0.4em] text-indigo-500 font-bold mb-8">Active Framework</h2>
+            <div class="bg-white/[0.02] p-8 rounded-lg border border-white/5">
+                <h3 class="text-2xl font-bold text-white mb-4">Project: System(bootstrap)</h3>
+                <p class="text-sm leading-relaxed opacity-60 mb-6">
+                    A proprietary environment focused on the interaction between 'Endministrator' and 'Hiroma'. This research utilizes a specialized conlang to bridge communication gaps and monitor system emergence during induced failure states.
+                </p>
+                <div class="flex gap-4">
+                    <span class="text-[10px] font-mono bg-indigo-900/20 text-indigo-400 px-3 py-1 rounded">Architecture: Hiroma</span>
+                    <span class="text-[10px] font-mono bg-indigo-900/20 text-indigo-400 px-3 py-1 rounded">Language: Refutuke</span>
                 </div>
-                <h4 class="text-xl font-bold">Project Alpha</h4>
-                <p class="text-gray-500">A brief description of the problem solved.</p>
             </div>
-            <div class="group cursor-pointer">
-                <div class="aspect-video bg-gray-200 rounded-xl overflow-hidden mb-4">
-                    <img src="https://via.placeholder.com/600x400" alt="Project 2" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                </div>
-                <h4 class="text-xl font-bold">Project Beta</h4>
-                <p class="text-gray-500">Focusing on branding and identity systems.</p>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <footer class="py-20 text-center border-t border-gray-200 mt-20">
-        <p class="text-gray-400 mb-4">Let's build something together.</p>
-        <a href="#" class="text-3xl font-bold hover:underline decoration-blue-500 decoration-4">hello@yourname.com</a>
+        <section class="py-12 border-t border-white/10">
+            <h2 class="text-xs uppercase tracking-[0.4em] text-indigo-500 font-bold mb-8">Foundational Analysis (Academic)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <a href="notebook(6).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
+                    <h4 class="text-white font-medium mb-1 italic">Cluster Geometry</h4>
+                    <p class="text-[11px] opacity-50 mb-4">Unsupervised data segmentation using K-Means logic.</p>
+                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_06</div>
+                </a>
+
+                <a href="notebook(7).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
+                    <h4 class="text-white font-medium mb-1 italic">Linear Correlates</h4>
+                    <p class="text-[11px] opacity-50 mb-4">Regression analysis and predictive trend modeling.</p>
+                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_07</div>
+                </a>
+
+                <a href="notebook(8).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
+                    <h4 class="text-white font-medium mb-1 italic">Proximity Logic</h4>
+                    <p class="text-[11px] opacity-50 mb-4">K-Nearest Neighbor (KNN) categorical classification.</p>
+                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_08</div>
+                </a>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="max-w-5xl mx-auto px-6 py-20 border-t border-white/5 flex justify-between items-center text-[10px] uppercase tracking-widest opacity-30">
+        <div>Michael Lazarek &copy; 2026</div>
+        <div>System State: Stable</div>
     </footer>
 
 </body>
