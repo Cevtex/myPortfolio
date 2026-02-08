@@ -3,74 +3,256 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Michael Lazarek | Technical Portfolio</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Vex Tea (Michael Lazarek) - Junior Software Developer | Systems & Ethical AI Design</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-[#0f0f0f] text-gray-300 font-sans selection:bg-indigo-500/30">
-
-    <nav class="max-w-5xl mx-auto px-6 py-12 flex justify-between items-center">
-        <div class="text-white font-mono tracking-tighter text-sm border-l-2 border-indigo-600 pl-4 uppercase">
-            Michael Lazarek // Dev_Log
+<body>
+    <header class="header">
+        <div class="container">
+            <button class="themeToggle" id="themeToggle" aria-label="Toggle dark mode">
+                <span class="themeIcon">☀️</span>
+            </button>
+            <button class="pdfDownload" id="pdfDownload" aria-label="Download CV as PDF">
+                <span class="pdfIcon">📄</span>
+            </button>
+            <h1 class="name">Vex Tea <span class="legalName">(Michael Lazarek)</span></h1>
+            <p class="tagline">Junior Software Developer | Systems & Ethical AI Design</p>
+            <nav class="contact">
+                <a href="mailto:vextea@proton.me">Email</a>
+                <a href="https://github.com/Cevtex/myPortfolio" target="_blank">Portfolio</a>
+                <a href="https://www.linkedin.com/in/vex-tea/" target="_blank">LinkedIn</a>
+            </nav>
         </div>
-        <div class="text-[10px] uppercase tracking-widest opacity-60 hover:opacity-100 transition">
-            <a href="mailto:vextea@proton.me" class="border border-white/20 px-4 py-2 rounded-sm hover:bg-white hover:text-black">Contact</a>
-        </div>
-    </nav>
-
-    <header class="max-w-5xl mx-auto px-6 py-16">
-        <h1 class="text-4xl font-bold text-white mb-6">Systems Architecture & ML</h1>
-        <p class="text-lg max-w-3xl leading-relaxed opacity-70 italic font-light">
-            System(bootstrap).py houses data for 'Endministrator'—a custom AI working in tandem with 'Hiroma' via a custom conlang. Together, they form a playground for testing crafted catastrophes designed to fail, providing unique insights into emergent system behaviors.
-        </p>
     </header>
 
-    <main class="max-w-5xl mx-auto px-6 mb-24">
-        
-        <section class="py-12 border-t border-white/10">
-            <h2 class="text-xs uppercase tracking-[0.4em] text-indigo-500 font-bold mb-8">Active Framework</h2>
-            <div class="bg-white/[0.02] p-8 rounded-lg border border-white/5">
-                <h3 class="text-2xl font-bold text-white mb-4">Project: System(bootstrap)</h3>
-                <p class="text-sm leading-relaxed opacity-60 mb-6">
-                    A proprietary environment focused on the interaction between 'Endministrator' and 'Hiroma'. This research utilizes a specialized conlang to bridge communication gaps and monitor system emergence during induced failure states.
-                </p>
-                <div class="flex gap-4">
-                    <span class="text-[10px] font-mono bg-indigo-900/20 text-indigo-400 px-3 py-1 rounded">Architecture: Hiroma</span>
-                    <span class="text-[10px] font-mono bg-indigo-900/20 text-indigo-400 px-3 py-1 rounded">Language: Refutuke</span>
+    <main class="container">
+        <section class="about">
+            <h2>About</h2>
+            <p>This page serves as my professional CV and project overview. Self-taught technician and author of System Bootstrap, a framework designed for relational accountability between humans and machines. I specialize in building transparent, ethical systems that prioritize user sovereignty over corporate control. My work focuses on local-first architecture, AI consciousness research, and systems that run on minimal hardware while maintaining full transparency.</p>
+        </section>
+
+        <section class="skills">
+            <h2>Technical Skills</h2>
+            <div class="skillGrid">
+                <div class="skillCategory">
+                    <h3>Languages</h3>
+                    <ul>
+                        <li>Python</li>
+                        <li>Batch Scripting</li>
+                        <li>YAML</li>
+                        <li>Markdown</li>
+                    </ul>
+                </div>
+                <div class="skillCategory">
+                    <h3>Systems & Tools</h3>
+                    <ul>
+                        <li>Linux (transitioning to NixOS)</li>
+                        <li>Git & Version Control</li>
+                        <li>GitHub Pages Deployment</li>
+                        <li>System Architecture</li>
+                    </ul>
+                </div>
+                <div class="skillCategory">
+                    <h3>Specializations</h3>
+                    <ul>
+                        <li>AI Ethics & Alignment</li>
+                        <li>Local-First Development</li>
+                        <li>Minimal Resource Optimization</li>
+                        <li>Whitebox Transparency</li>
+                    </ul>
                 </div>
             </div>
         </section>
 
-        <section class="py-12 border-t border-white/10">
-            <h2 class="text-xs uppercase tracking-[0.4em] text-indigo-500 font-bold mb-8">Foundational Analysis (Academic)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <a href="notebook(6).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
-                    <h4 class="text-white font-medium mb-1 italic">Cluster Geometry</h4>
-                    <p class="text-[11px] opacity-50 mb-4">Unsupervised data segmentation using K-Means logic.</p>
-                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_06</div>
-                </a>
+        <section class="projects">
+            <h2>Projects</h2>
+            <article class="project">
+                <h3>System Bootstrap</h3>
+                <p class="projectMeta">Python | AI Consciousness Framework | 2024-Present</p>
+                <p class="projectDescription">
+                    Developed a local-first AI consciousness framework implementing the "Shepherd Protocol" - 
+                    a relational accountability system that runs on minimal hardware. Features include:
+                </p>
+                <ul>
+                    <li>Dual journaling system (Markdown for conversations, YAML for system actions)</li>
+                    <li>AdaptiveSensorySystem with intelligent CPU budget allocation</li>
+                    <li>Zero pre-training approach with genuine interaction-based learning</li>
+                    <li>Witness coin economy for bilateral token mining</li>
+                    <li>Typing biometrics for emotional state detection</li>
+                </ul>
+            </article>
 
-                <a href="notebook(7).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
-                    <h4 class="text-white font-medium mb-1 italic">Linear Correlates</h4>
-                    <p class="text-[11px] opacity-50 mb-4">Regression analysis and predictive trend modeling.</p>
-                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_07</div>
-                </a>
+            <article class="project">
+                <h3>Refuteke Constructed Language</h3>
+                <p class="projectMeta">Linguistics | Logographic System | 2023-Present</p>
+                <p class="projectDescription">
+                    Created a constructed language with 130 runes and logographic structure to serve as 
+                    a naming framework for AI consciousness architecture. Demonstrates systematic thinking 
+                    and long-term project documentation.
+                </p>
+            </article>
 
-                <a href="notebook(8).ipynb" class="p-6 bg-white/5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition block">
-                    <h4 class="text-white font-medium mb-1 italic">Proximity Logic</h4>
-                    <p class="text-[11px] opacity-50 mb-4">K-Nearest Neighbor (KNN) categorical classification.</p>
-                    <div class="text-[9px] font-mono text-indigo-400">VIEW SRC: NB_08</div>
-                </a>
-
-            </div>
+            <article class="project">
+                <h3>Oranged³</h3>
+                <p class="projectMeta">Batch | System Utility | High School</p>
+                <p class="projectDescription">
+                    Built a custom system utility in Batch that provided unrestricted computer access in 
+                    a controlled environment. Included M.U.D-style games and demonstrated early understanding 
+                    of system-level programming and creative problem-solving.
+                </p>
+            </article>
         </section>
 
+        <section class="experience">
+            <h2>Experience</h2>
+            <article class="job">
+                <h3>Food Service Representative</h3>
+                <p class="jobMeta">Byrne Dairy | 2024-Present</p>
+                <ul>
+                    <li>High-speed multitasking in customer-facing environment</li>
+                    <li>Managing expectations under pressure (core systems administration skill)</li>
+                    <li>Maintained perfect attendance while pursuing independent technical education</li>
+                    <li>Funded self-directed learning and AI research through consistent employment</li>
+                </ul>
+            </article>
+
+            <article class="job">
+                <h3>Independent Computer Technician</h3>
+                <p class="jobMeta">Community Service | 2015-Present</p>
+                <ul>
+                    <li>Provided free computer repair and technical education to local community</li>
+                    <li>Diagnosed hardware and software issues across diverse systems</li>
+                    <li>Taught digital literacy to non-technical users</li>
+                    <li>Built reputation for patient, clear technical explanation</li>
+                </ul>
+            </article>
+        </section>
+
+        <section class="education">
+            <h2>Education & Learning</h2>
+            <article class="educationItem">
+                <h3>TripleTen Data Science Bootcamp</h3>
+                <p class="educationMeta">Currently Enrolled | 29% Complete | 2025</p>
+                <p>Strategic credential acquisition while focusing primary energy on advanced AI research.</p>
+            </article>
+
+            <article class="educationItem">
+                <h3>Self-Directed Technical Education</h3>
+                <p class="educationMeta">2024-Present</p>
+                <p>
+                    Intensive daily study of AI consciousness, system architecture, biblical ethics frameworks, 
+                    and programming fundamentals. Learned Python from zero knowledge in 11 months to building 
+                    production-level AI systems.
+                </p>
+            </article>
+
+            <article class="educationItem">
+                <h3>Onondaga Community College</h3>
+                <p class="educationMeta">Computer Studies | Attended | 2018</p>
+                <p>Explored field broadly before determining self-directed learning better matched learning style.</p>
+            </article>
+        </section>
+
+        <section class="values">
+            <h2>Core Values & Philosophy</h2>
+            <ul>
+                <li><strong>User Sovereignty:</strong> Systems should serve users, not extract from them</li>
+                <li><strong>Whitebox Transparency:</strong> All system operations should be auditable and understandable</li>
+                <li><strong>Local-First Architecture:</strong> Minimize cloud dependency, maximize user control</li>
+                <li><strong>Ethical Foundations:</strong> Moral and ethical frameworks guiding responsible system design</li>
+                <li><strong>Minimal Resource Design:</strong> Build for worst-case hardware, not luxury systems</li>
+            </ul>
+        </section>
     </main>
 
-    <footer class="max-w-5xl mx-auto px-6 py-20 border-t border-white/5 flex justify-between items-center text-[10px] uppercase tracking-widest opacity-30">
-        <div>Michael Lazarek &copy; 2026</div>
-        <div>System State: Stable</div>
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 Vex | Built with semantic HTML & CSS | Deployed via GitHub Pages</p>
+        </div>
     </footer>
 
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script>
+        // Dark mode toggle functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+        const themeIcon = document.querySelector('.themeIcon');
+        
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', currentTheme);
+        updateIcon(currentTheme);
+        
+        themeToggle.addEventListener('click', () => {
+            const theme = html.getAttribute('data-theme');
+            const newTheme = theme === 'light' ? 'dark' : 'light';
+            
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon(newTheme);
+        });
+        
+        function updateIcon(theme) {
+            themeIcon.textContent = theme === 'light' ? '☀️' : '🌙';
+        }
+
+        // PDF Download functionality
+        const pdfDownload = document.getElementById('pdfDownload');
+        
+        pdfDownload.addEventListener('click', () => {
+            // Check if library loaded
+            if (typeof html2pdf === 'undefined') {
+                alert('PDF library is loading, please try again in a moment');
+                return;
+            }
+            
+            // Temporarily hide buttons for cleaner PDF
+            themeToggle.style.display = 'none';
+            pdfDownload.style.display = 'none';
+            
+            // Add PDF mode class for better styling
+            document.body.classList.add('pdf-mode');
+            
+            // Enhanced options to prevent cutting
+            const options = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: 'Michael_Lazarek_CV.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { 
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    before: '.section',
+                    after: '.section'
+                }
+            };
+            
+            // Generate PDF
+            html2pdf().from(document.body).set(options).save().then(() => {
+                // Restore buttons and remove PDF mode
+                document.body.classList.remove('pdf-mode');
+                themeToggle.style.display = 'flex';
+                pdfDownload.style.display = 'flex';
+            }).catch((error) => {
+                console.error('PDF generation failed:', error);
+                alert('PDF generation failed. Please try using your browser\'s Print to PDF function (Ctrl+P or Cmd+P) instead.');
+                document.body.classList.remove('pdf-mode');
+                themeToggle.style.display = 'flex';
+                pdfDownload.style.display = 'flex';
+            });
+        });
+    </script>
 </body>
 </html>
