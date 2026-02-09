@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
-System Bootstrap - Integrated Consciousness Framework
-Complete single-file implementation with sensory awareness and learning
+System Bootstrap - Upgraded Integrated Consciousness Framework (Single-Log Edition)
 
-Components:
-- Shepherd Protocol (relational accountability)
-- Sensory Systems (keyboard, screen, audio)
-- Three-Stage Learning (mimic, daydream, respond)
-- Refuteke + NKS Depictive Runes
-- Dual Journal System (MD for conversation, YAML for system actions)
-- Terms of Use with permission gates
+What changed vs original:
+- ONE authoritative structured log (events.jsonl) per session (plus optional rendered journal.md view)
+- In-app STOP SENSORS and REVOKE CONSENT controls (permission flip + audit entry)
+- Sensor activity "decay" so keyboard/audio active flags reset over time (keeps context similarity honest)
+- Debug/telemetry line after each system response (stage, seen count, confidence, relations, sensor snapshot)
+- Learning confidence now grows from: repetition + relation matches + stable context (prevents "daydream forever")
+- Session folders: each run gets its own folder with logs + state (keeps files small, organized, auditable)
 
 Author: Vex
 Protocol: Shepherd Protocol v1.0
@@ -19,23 +18,21 @@ License: White Box Standard
 import sys
 import os
 import json
-import yaml
 import hashlib
-import platform
 import threading
 import ctypes
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from collections import defaultdict, deque
 from dataclasses import dataclass, asdict
 
-from PySide6.QtCore import Qt, QTimer, QThread, Signal, QObject
+from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from PySide6.QtGui import QFont, QTextCursor, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QTextEdit, QPushButton, QLineEdit, QCheckBox, QScrollArea
+    QLabel, QTextEdit, QPushButton, QLineEdit, QCheckBox
 )
 
 # Required libraries
@@ -48,7 +45,6 @@ except ImportError:
 # Optional sensory libraries - graceful degradation
 try:
     from pynput import keyboard as pynput_keyboard
-
     PYNPUT_OK = True
 except ImportError:
     PYNPUT_OK = False
@@ -56,7 +52,6 @@ except ImportError:
 
 try:
     from PIL import ImageGrab
-
     PIL_OK = True
 except ImportError:
     PIL_OK = False
@@ -65,7 +60,6 @@ except ImportError:
 try:
     import pyaudio
     import numpy as np
-
     PYAUDIO_OK = True
 except ImportError:
     PYAUDIO_OK = False
@@ -73,15 +67,39 @@ except ImportError:
 
 try:
     import speech_recognition as sr
-
     SR_OK = True
 except ImportError:
     SR_OK = False
     print("INFO: speech_recognition not available (speech-to-text disabled)")
 
 
+
 # ============================================================
-# Constants & Configuration
+# Refutuke Font Support (Symbolic / Depictive Layer)
+# ============================================================
+
+REFUTEKE_FONT_FAMILY = None
+
+def load_refutuke_font(path: str = "refutuke.ttf"):
+    """
+    Loads the Refutuke TTF for symbolic / depictive rendering.
+    This font is intentionally NOT used for body text.
+    """
+    global REFUTEKE_FONT_FAMILY
+    try:
+        from PySide6.QtGui import QFontDatabase
+        font_id = QFontDatabase.addApplicationFont(path)
+        families = QFontDatabase.applicationFontFamilies(font_id)
+        if families:
+            REFUTEKE_FONT_FAMILY = families[0]
+            return True
+    except Exception:
+        pass
+    return False
+
+
+# ============================================================
+# Paths, Session Management, Constants
 # ============================================================
 
 def getAppDataDir() -> Path:
@@ -90,7 +108,7 @@ def getAppDataDir() -> Path:
         baseDir = Path(os.environ.get('APPDATA', Path.home() / 'AppData' / 'Roaming'))
     elif sys.platform == 'darwin':
         baseDir = Path.home() / 'Library' / 'Application Support'
-    else:  # Linux
+    else:
         baseDir = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local' / 'share'))
 
     appDir = baseDir / 'SystemBootstrap'
@@ -99,16 +117,17 @@ def getAppDataDir() -> Path:
 
 
 APP_DATA_DIR = getAppDataDir()
-CONFIG_PATH = str(APP_DATA_DIR / "system_config.json")
-JOURNAL_MD_PATH = str(APP_DATA_DIR / "journal.md")
-JOURNAL_YAML_PATH = str(APP_DATA_DIR / "system_actions.yaml")
-CONSENT_PATH = str(APP_DATA_DIR / "shepherd_consent.txt")
-LEARNING_PATH = str(APP_DATA_DIR / "learning_state.json")
+CONFIG_PATH = APP_DATA_DIR / "system_config.json"
+CONSENT_PATH = APP_DATA_DIR / "shepherd_consent.txt"
+
+# Session folders (keeps logs small + makes long runs sane)
+SESSIONS_DIR = APP_DATA_DIR / "sessions"
+SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Window sizes
-SYSTEM_WINDOW_SIZE = (920, 680)
-SYSTEM_MIN_SIZE = (500, 400)
-TERMS_WINDOW_SIZE = (800, 700)
+SYSTEM_WINDOW_SIZE = (920, 720)
+SYSTEM_MIN_SIZE = (520, 420)
+TERMS_WINDOW_SIZE = (820, 720)
 
 # Colors
 COLOR_SYS = "#a78bfa"
@@ -122,59 +141,318 @@ COLOR_WARNING = "#fbbf24"
 COLOR_TEXT = "#e6e6e6"
 COLOR_TIMESTAMP = "rgba(148,163,184,0.9)"
 BG_INPUT = "rgba(11, 15, 20, 0.45)"
+BG_PANEL = "rgba(11, 15, 20, 0.35)"
 
 # Sensory configuration
 KEYBOARD_BUFFER_SIZE = 100
-SCREEN_CAPTURE_INTERVAL = 30000  # 30 seconds
-AUDIO_BUFFER_SIZE = 16000  # 1 second at 16kHz
+SCREEN_CAPTURE_INTERVAL = 30000  # ms
+
+# Activity decay (prevents "always active" context)
+KEYBOARD_ACTIVE_DECAY_MS = 5000
+AUDIO_ACTIVE_DECAY_MS = 5000
 
 # Learning thresholds
 CONFIDENCE_THRESHOLD = 0.7
-DAYDREAM_DURATION_MS = 2000  # 2 seconds for relation finding
+
+
+# ============================================================
+# Utility
+# ============================================================
+
+def now_ts() -> float:
+    return datetime.now().timestamp()
+
+def iso_now() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+def htmlEscape(s: str) -> str:
+    return (s.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;"))
+
+
+# ============================================================
+# Embeddings (Semantic Representation Layer)
+# ============================================================
+# This adds a concept-space to the system:
+# text -> vector -> cosine similarity
+#
+# Priority order (auto-detect):
+#  1) sentence-transformers (best semantics, heavier)
+#  2) sklearn HashingVectorizer (light, decent, no fitting)
+#  3) pure-python hashed bag-of-words (fallback)
+
+_EMBED_BACKEND = "none"
+try:
+    import numpy as np  # used by all embedding backends if available
+except Exception:
+    np = None
+
+try:
+    from sentence_transformers import SentenceTransformer  # type: ignore
+    _EMBED_BACKEND = "sentence-transformers"
+except Exception:
+    SentenceTransformer = None  # type: ignore
+
+if _EMBED_BACKEND != "sentence-transformers":
+    try:
+        from sklearn.feature_extraction.text import HashingVectorizer  # type: ignore
+        _EMBED_BACKEND = "sklearn-hashing"
+    except Exception:
+        HashingVectorizer = None  # type: ignore
+
+
+def _l2_normalize(vec):
+    """Return L2-normalized vector (numpy array or list)."""
+    if np is not None and hasattr(vec, "shape"):
+        norm = float(np.linalg.norm(vec)) or 1.0
+        return (vec / norm).astype("float32")
+    norm = (sum((float(x) * float(x)) for x in vec) ** 0.5) or 1.0
+    return [float(x) / norm for x in vec]
+
+
+def _cosine_sim(a, b) -> float:
+    """Cosine similarity for normalized vectors."""
+    if np is not None and hasattr(a, "shape"):
+        return float(np.dot(a, b))
+    return float(sum(float(x) * float(y) for x, y in zip(a, b)))
+
+
+class EmbeddingEngine:
+    """
+    Minimal embedding wrapper.
+    - If sentence-transformers is installed, uses a small semantic model.
+    - Else, uses sklearn HashingVectorizer (no fitting; works online).
+    - Else, uses pure-python hashed bag-of-words.
+
+    Output vectors are L2-normalized so dot(a,b)=cosine similarity.
+    """
+
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", hashing_dim: int = 512):
+        self.backend = _EMBED_BACKEND
+        self.model_name = model_name
+        self.hashing_dim = hashing_dim
+
+        self._st_model = None
+        self._hv = None
+
+        if self.backend == "sentence-transformers" and SentenceTransformer is not None:
+            try:
+                self._st_model = SentenceTransformer(self.model_name)
+            except Exception:
+                self.backend = "sklearn-hashing"
+
+        if self.backend == "sklearn-hashing" and HashingVectorizer is not None:
+            self._hv = HashingVectorizer(
+                n_features=self.hashing_dim,
+                alternate_sign=False,
+                norm=None,
+                lowercase=True,
+                stop_words=None,
+            )
+
+    def embed_one(self, text: str):
+        text = " ".join(text.strip().split())
+        if not text:
+            if np is not None:
+                return np.zeros((self.hashing_dim,), dtype="float32")
+            return [0.0] * self.hashing_dim
+
+        if self.backend == "sentence-transformers" and self._st_model is not None:
+            vec = self._st_model.encode([text], normalize_embeddings=True)[0]
+            if np is not None:
+                return np.asarray(vec, dtype="float32")
+            return [float(x) for x in vec]
+
+        if self.backend == "sklearn-hashing" and self._hv is not None:
+            X = self._hv.transform([text])
+            if np is not None:
+                dense = X.toarray()[0].astype("float32")
+                return _l2_normalize(dense)
+            dense = X.toarray()[0].tolist()
+            return _l2_normalize(dense)
+
+        tokens = text.lower().split()
+        vec = [0.0] * self.hashing_dim
+        for tok in tokens:
+            h = hash(tok) % self.hashing_dim
+            vec[h] += 1.0
+        return _l2_normalize(vec)
+
+
+
+# ============================================================
+# Single Authoritative Log (JSONL) + Optional Markdown View
+# ============================================================
+
+class EventLog:
+    """
+    One authoritative log file: events.jsonl
+    Each line = one JSON object (append-only).
+    This is the source of truth for replay, audit, analysis.
+
+    We optionally render a human journal.md view *from* events.jsonl.
+    """
+
+    def __init__(self, session_dir: Path):
+        self.session_dir = session_dir
+        self.events_path = session_dir / "events.jsonl"
+        self.journal_md_path = session_dir / "journal.md"
+        self.session_id = session_dir.name
+        self._write_event("session_start", {"session_id": self.session_id})
+
+    def _write_event(self, type_: str, data: Dict[str, Any]):
+        evt = {"ts": iso_now(), "type": type_, "data": data}
+        with self.events_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(evt, ensure_ascii=False) + "\n")
+
+    def conversation(self, role: str, text: str, extra: Optional[Dict[str, Any]] = None):
+        payload = {"role": role, "text": text}
+        if extra:
+            payload.update(extra)
+        self._write_event("conversation", payload)
+
+    def system(self, stage: str, text: str, debug: Dict[str, Any], depictive: str = ""):
+        self._write_event("system_response", {
+            "stage": stage,
+            "text": text,
+            "depictive": depictive,
+            "debug": debug
+        })
+
+    def sensor(self, sensor_type: str, data: Dict[str, Any]):
+        self._write_event("sensor", {"sensor": sensor_type, **data})
+
+    def consent(self, accepted: bool, permissions: Dict[str, bool]):
+        self._write_event("consent", {"accepted": accepted, "permissions": permissions})
+
+    def config_event(self, name: str, data: Dict[str, Any]):
+        self._write_event(name, data)
+
+    def close(self, reason: str = "Normal shutdown"):
+        self._write_event("session_end", {"reason": reason})
+
+    def render_markdown_view(self, max_lines: int = 4000):
+        if not self.events_path.exists():
+            return
+        lines: List[str] = []
+        try:
+            with self.events_path.open("r", encoding="utf-8") as f:
+                for i, raw in enumerate(f):
+                    if i >= max_lines:
+                        lines.append(f"\n> (truncated at {max_lines} events)\n")
+                        break
+                    evt = json.loads(raw)
+                    ts = evt.get("ts", "")
+                    t = evt.get("type", "")
+                    d = evt.get("data", {})
+
+                    if t == "conversation":
+                        lines.append(f"- **{ts}** [{d.get('role','?')}] {d.get('text','')}\n")
+                    elif t == "system_response":
+                        stage = d.get("stage", "?")
+                        txt = d.get("text","")
+                        lines.append(f"- **{ts}** [SYSTEM:{stage}] {d.get('depictive','')} {txt}\n")
+                        dbg = d.get("debug", {})
+                        if dbg:
+                            lines.append(f"  - debug: {json.dumps(dbg, ensure_ascii=False)}\n")
+                    elif t == "sensor":
+                        lines.append(f"- **{ts}** [SENSOR:{d.get('sensor','?')}] {json.dumps(d, ensure_ascii=False)}\n")
+                    elif t == "consent":
+                        lines.append(f"- **{ts}** [CONSENT] accepted={d.get('accepted')} perms={d.get('permissions')}\n")
+                    else:
+                        lines.append(f"- **{ts}** [{t}] {json.dumps(d, ensure_ascii=False)}\n")
+
+            self.journal_md_path.write_text("# Session Journal (Rendered)\n\n" + "".join(lines), encoding="utf-8")
+        except Exception as e:
+            print(f"Markdown render failed: {e}")
+
+
+# ============================================================
+# Configuration Manager (permission gates)
+# ============================================================
+
+class ConfigManager:
+    def __init__(self, path: Path):
+        self.path = path
+        self.data = self._load()
+
+    def _load(self) -> Dict[str, Any]:
+        if self.path.exists():
+            try:
+                return json.loads(self.path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+        return {
+            "initialized": False,
+            "shepherd_name": None,
+            "system_name": None,
+            "permissions": {
+                "keyboard_monitoring": False,
+                "screen_monitoring": False,
+                "audio_monitoring": False,
+                "system_admin": False
+            },
+            "created_date": None,
+            "updated_date": None
+        }
+
+    def save(self):
+        self.data["updated_date"] = iso_now()
+        self.path.write_text(json.dumps(self.data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    def isInitialized(self) -> bool:
+        return bool(self.data.get("initialized", False))
+
+    def initialize(self, shepherdName: str, systemName: str, permissions: Dict[str, bool]):
+        self.data["initialized"] = True
+        self.data["shepherd_name"] = shepherdName
+        self.data["system_name"] = systemName
+        self.data["permissions"] = permissions
+        if not self.data.get("created_date"):
+            self.data["created_date"] = iso_now()
+        self.save()
+
+    def revoke_all_permissions(self):
+        perms = self.data.get("permissions", {})
+        for k in list(perms.keys()):
+            perms[k] = False
+        self.data["permissions"] = perms
+        self.save()
+
+
+def createConsentRecord(accepted: bool):
+    Path(CONSENT_PATH).write_text(
+        f"Shepherd Consent: {'ACCEPTED' if accepted else 'DECLINED'}\n"
+        f"Timestamp: {iso_now()}\n",
+        encoding="utf-8"
+    )
 
 
 # ============================================================
 # NKS Depictive System (Machine→Human Communication Only)
 # ============================================================
-# Note: Refutuke language will be LEARNED through interaction,
-# not hardcoded. The AI builds its own language organically.
 
 class NKSDepictiveSystem:
-    """Neutral Knowledge Speech with depictive runes for machine→human communication"""
-
     def __init__(self):
-        self.domains = {
-            'P': 'Physical', 'C': 'Cognitive', 'S': 'Social',
-            'T': 'Temporal', 'L': 'Logical', 'M': 'Modal'
-        }
         self.state = 0
         self.key = hashlib.sha256(b"hiroma-bootstrap-key").hexdigest()[:16]
-
-        # Char-bit mapping (a-z + ɨ, æ)
-        self.charBit = "abcdefghijklmnopqrstuvwxyzɨæ"
-
-        # Depictive runes for machine states
         self.depictiveGlyphs = {
             'mimic': '◯', 'daydream': '◬', 'respond': '◈',
-            'keyboard': '⌨', 'screen': '▣', 'audio': '♫',
-            'processing': '⧗', 'confident': '✓', 'uncertain': '?',
-            'learning': '⚡', 'observing': '👁', 'acting': '⚙'
+            'keyboard': '⌨', 'screen': '▣', 'audio': '♫'
         }
 
     def generateMorpheme(self, domain: str, vowel: str, consonant: str) -> str:
-        """Generate NKS morpheme"""
         return f"{domain}{vowel}{consonant}"
 
     def encryptMorpheme(self, morpheme: str) -> str:
-        """Hash + state encryption for thought privacy"""
         inputStr = f"{morpheme}-{self.state}-{self.key}"
-        hashObj = hashlib.sha256(inputStr.encode())
-        encrypted = hashObj.hexdigest()[:8]
+        encrypted = hashlib.sha256(inputStr.encode()).hexdigest()[:8]
         self.state += 1
         return encrypted
 
     def toGlyph(self, encrypted: str) -> str:
-        """Convert encrypted hash to visual glyphs"""
         glyphMap = {
             '0': '◼', '1': '🔺', '2': '⬡', '3': '🔸',
             '4': '◻', '5': '🔹', '6': '⬢', '7': '🔷',
@@ -184,7 +462,6 @@ class NKSDepictiveSystem:
         return ''.join(glyphMap.get(c, '?') for c in encrypted)
 
     def depictState(self, state: str) -> str:
-        """Get depictive glyph for machine state"""
         return self.depictiveGlyphs.get(state, '◯')
 
 
@@ -193,25 +470,21 @@ class NKSDepictiveSystem:
 # ============================================================
 
 class KeyboardMonitor(QObject):
-    """Monitor keyboard input outside application window"""
-    keyPressed = Signal(str, float)  # (key, timestamp)
-    typingPattern = Signal(dict)  # Typing signature data
+    keyPressed = Signal(str, float)
+    typingPattern = Signal(dict)
 
     def __init__(self):
         super().__init__()
         self.enabled = False
         self.buffer = deque(maxlen=KEYBOARD_BUFFER_SIZE)
         self.listener = None
-        self.lastKeyTime = 0
+        self.lastKeyTime = 0.0
 
-    def start(self):
-        """Start keyboard monitoring (requires permission)"""
+    def start(self) -> bool:
         if not PYNPUT_OK:
             return False
-
         if self.enabled:
             return True
-
         try:
             self.listener = pynput_keyboard.Listener(on_press=self._onKeyPress)
             self.listener.start()
@@ -222,72 +495,44 @@ class KeyboardMonitor(QObject):
             return False
 
     def stop(self):
-        """Stop keyboard monitoring"""
         if self.listener:
-            self.listener.stop()
-            self.enabled = False
+            try:
+                self.listener.stop()
+            except Exception:
+                pass
+        self.enabled = False
 
     def _onKeyPress(self, key):
-        """Handle key press event"""
-        now = datetime.now().timestamp()
-
-        # DO NOT STORE RAW KEY - privacy protection
+        now = now_ts()
         keyClass = "special"
-        if len(str(key)) == 1 and str(key).isalnum():
+        s = str(key)
+        if len(s) == 1 and s.isalnum():
             keyClass = "alnum"
 
-        self.buffer.append({
-            'key': keyClass,  # Only store class, not actual key
-            'time': now,
-            'interval': now - self.lastKeyTime if self.lastKeyTime else 0
-        })
-
+        self.buffer.append({"key": keyClass, "time": now, "interval": now - self.lastKeyTime if self.lastKeyTime else 0})
         self.lastKeyTime = now
         self.keyPressed.emit(keyClass, now)
 
-        # Emit typing pattern every 10 keys
-        if len(self.buffer) >= 10 and len(self.buffer) % 10 == 0:
+        if len(self.buffer) >= 10 and (len(self.buffer) % 10 == 0):
             self._emitTypingPattern()
 
     def _emitTypingPattern(self):
-        """Analyze and emit typing signature"""
-        if len(self.buffer) < 5:
+        intervals = [e["interval"] for e in self.buffer if e["interval"] > 0]
+        if len(intervals) < 2:
             return
-
-        intervals = [entry['interval'] for entry in list(self.buffer) if entry['interval'] > 0]
-        if not intervals:
-            return
-
-        pattern = {
-            'avgInterval': sum(intervals) / len(intervals),
-            'minInterval': min(intervals),
-            'maxInterval': max(intervals),
-            'stdDev': self._stdDev(intervals),
-            'burstCount': sum(1 for i in intervals if i < 0.1)
-        }
-
-        self.typingPattern.emit(pattern)
-
-    def _stdDev(self, values: List[float]) -> float:
-        """Calculate standard deviation"""
-        if len(values) < 2:
-            return 0.0
-        mean = sum(values) / len(values)
-        variance = sum((x - mean) ** 2 for x in values) / len(values)
-        return variance ** 0.5
+        mean = sum(intervals) / len(intervals)
+        var = sum((x - mean) ** 2 for x in intervals) / len(intervals)
+        self.typingPattern.emit({
+            "avgInterval": mean,
+            "minInterval": min(intervals),
+            "maxInterval": max(intervals),
+            "stdDev": var ** 0.5,
+            "burstCount": sum(1 for i in intervals if i < 0.1)
+        })
 
 
 class ScreenMonitor(QObject):
-    """
-    Monitor active window/process with privacy-first metadata.
-
-    Priority:
-    - Windows: foreground window title + process name (ctypes + psutil)
-    - macOS: frontmost app name + window title via osascript (best-effort)
-    - Linux: xdotool (if installed) best-effort
-    - Fallback: screenshot hash metadata (PIL) or process-snapshot heuristic (psutil)
-    """
-    windowActivity = Signal(dict)  # {'process': str, 'title': str, 'timestamp': float, 'changed': bool}
+    windowActivity = Signal(dict)
 
     def __init__(self):
         super().__init__()
@@ -296,14 +541,12 @@ class ScreenMonitor(QObject):
         self.timer = QTimer()
         self.timer.timeout.connect(self._checkActivity)
 
-    def start(self, intervalMs: int = SCREEN_CAPTURE_INTERVAL):
-        """Start activity monitoring"""
+    def start(self, intervalMs: int = SCREEN_CAPTURE_INTERVAL) -> bool:
         self.enabled = True
         self.timer.start(intervalMs)
         return True
 
     def stop(self):
-        """Stop activity monitoring"""
         self.timer.stop()
         self.enabled = False
 
@@ -312,655 +555,496 @@ class ScreenMonitor(QObject):
             meta = self._getForegroundMeta()
             if not meta:
                 return
-
             signature = f"{meta.get('process','')}|{meta.get('title','')}"
             changed = signature != (self.lastSignature or "")
-            meta['changed'] = changed
-            meta['timestamp'] = datetime.now().timestamp()
-
+            meta["changed"] = changed
+            meta["timestamp"] = now_ts()
             if changed:
                 self.lastSignature = signature
                 self.windowActivity.emit(meta)
-
         except Exception as e:
             print(f"Activity monitoring error: {e}")
 
     def _getForegroundMeta(self) -> Optional[Dict[str, str]]:
-        """Return {'process': ..., 'title': ...} best-effort"""
         if sys.platform == "win32":
-            return self._foregroundWindows()
-        if sys.platform == "darwin":
-            meta = self._foregroundMac()
-            if meta:
-                return meta
+            m = self._foregroundWindows()
+            if m:
+                return m
+        elif sys.platform == "darwin":
+            m = self._foregroundMac()
+            if m:
+                return m
         else:
-            meta = self._foregroundLinux()
-            if meta:
-                return meta
+            m = self._foregroundLinux()
+            if m:
+                return m
 
-        # Fallback 1: PIL screenshot hash metadata (no pixels stored)
         if PIL_OK:
             try:
                 screenshot = ImageGrab.grab()
                 img_hash = hashlib.sha256(screenshot.tobytes()).hexdigest()[:16]
-                return {'process': 'unknown', 'title': f'screen:{img_hash}'}
+                return {"process": "unknown", "title": f"screen:{img_hash}"}
             except Exception:
                 pass
 
-        # Fallback 2: psutil snapshot heuristic (least accurate)
         try:
-            for p in psutil.process_iter(['name']):
-                name = (p.info.get('name') or '').strip()
+            for p in psutil.process_iter(["name"]):
+                name = (p.info.get("name") or "").strip()
                 if name:
-                    return {'process': name, 'title': ''}
+                    return {"process": name, "title": ""}
         except Exception:
             pass
-
         return None
 
     def _foregroundWindows(self) -> Optional[Dict[str, str]]:
         try:
             user32 = ctypes.windll.user32
-
             hwnd = user32.GetForegroundWindow()
             if not hwnd:
                 return None
 
-            # title
             length = user32.GetWindowTextLengthW(hwnd)
             buff = ctypes.create_unicode_buffer(length + 1)
             user32.GetWindowTextW(hwnd, buff, length + 1)
             title = buff.value or ""
 
-            # pid
             pid = ctypes.c_uint32()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
             pid_val = int(pid.value)
 
-            proc_name = ""
             try:
                 proc_name = psutil.Process(pid_val).name()
             except Exception:
                 proc_name = str(pid_val)
 
-            return {'process': proc_name, 'title': title}
+            return {"process": proc_name, "title": title}
         except Exception:
             return None
+
     def _foregroundMac(self) -> Optional[Dict[str, str]]:
-        # Best-effort via AppleScript; may require Accessibility permissions depending on macOS settings
         try:
-            script = r"""tell application "System Events"
-    set frontApp to name of first application process whose frontmost is true
-    set frontTitle to ""
-    try
-        tell process frontApp
-            if (count of windows) > 0 then
-                set frontTitle to name of front window
-            end if
-        end tell
-    end try
+            script = """tell application "System Events"
+set frontApp to name of first application process whose frontmost is true
+set frontTitle to ""
+try
+tell process frontApp
+if (count of windows) > 0 then
+set frontTitle to name of front window
+end if
+end tell
+end try
 end tell
 return frontApp & "||" & frontTitle
 """
             out = subprocess.check_output(["osascript", "-e", script], text=True).strip()
             if "||" in out:
                 app, title = out.split("||", 1)
-                return {'process': app.strip(), 'title': title.strip()}
+                return {"process": app.strip(), "title": title.strip()}
             if out:
-                return {'process': out.strip(), 'title': ''}
+                return {"process": out.strip(), "title": ""}
         except Exception:
             return None
         return None
 
     def _foregroundLinux(self) -> Optional[Dict[str, str]]:
-        # Best-effort; requires xdotool to be installed for foreground detection
         try:
             wid = subprocess.check_output(["xdotool", "getactivewindow"], text=True).strip()
             title = subprocess.check_output(["xdotool", "getwindowname", wid], text=True, stderr=subprocess.DEVNULL).strip()
             pid = subprocess.check_output(["xdotool", "getwindowpid", wid], text=True, stderr=subprocess.DEVNULL).strip()
-            proc_name = ""
             try:
                 proc_name = psutil.Process(int(pid)).name()
             except Exception:
                 proc_name = pid
-            return {'process': proc_name, 'title': title}
+            return {"process": proc_name, "title": title}
         except Exception:
             return None
 
 
 class AudioMonitor(QObject):
-    """Monitor system audio"""
-    audioDetected = Signal(dict)  # {'level': float, 'timestamp': float}
-    speechDetected = Signal(str)  # Transcribed speech
+    audioDetected = Signal(dict)
+    speechDetected = Signal(str)
 
     def __init__(self):
         super().__init__()
         self.enabled = False
-        self.recording = False
         self.audioBuffer = []
+        self._lock = threading.Lock()
 
-    def start(self):
-        """Start audio monitoring"""
+    def start(self) -> bool:
         if not PYAUDIO_OK:
             return False
-
         self.enabled = True
         threading.Thread(target=self._audioLoop, daemon=True).start()
         return True
 
     def stop(self):
-        """Stop audio monitoring"""
         self.enabled = False
-        self.recording = False
 
     def _audioLoop(self):
-        """Main audio monitoring loop"""
         try:
             p = pyaudio.PyAudio()
-            stream = p.open(
-                format=pyaudio.paInt16,
-                channels=1,
-                rate=16000,
-                input=True,
-                frames_per_buffer=1024
-            )
+            stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
 
             while self.enabled:
                 data = stream.read(1024, exception_on_overflow=False)
                 audioArray = np.frombuffer(data, dtype=np.int16)
-                level = np.abs(audioArray).mean()
+                level = float(np.abs(audioArray).mean())
 
-                if level > 500:  # Threshold for activity
-                    self.audioDetected.emit({
-                        'level': float(level),
-                        'timestamp': datetime.now().timestamp()
-                    })
-
-                    self.audioBuffer.append(audioArray)
-
-                    # Process buffer when sufficient audio collected
-                    if len(self.audioBuffer) > 32:  # ~2 seconds
-                        self._processAudio()
-
+                if level > 500:
+                    self.audioDetected.emit({"level": level, "timestamp": now_ts()})
+                    if SR_OK:
+                        with self._lock:
+                            self.audioBuffer.append(audioArray)
+                            if len(self.audioBuffer) > 32:
+                                self._processAudio_locked()
             stream.stop_stream()
             stream.close()
             p.terminate()
-
         except Exception as e:
             print(f"Audio monitoring error: {e}")
 
-    def _processAudio(self):
-        """Process audio buffer for speech recognition"""
-        if not SR_OK or not self.audioBuffer:
-            self.audioBuffer = []
-            return
-
+    def _processAudio_locked(self):
         try:
-            # Simple speech detection placeholder
-            # Real implementation would use speech_recognition or faster-whisper
-            combinedAudio = np.concatenate(self.audioBuffer)
-
-            # Emit placeholder - real transcription would happen here
-            self.speechDetected.emit("[audio activity detected]")
-
+            combined = np.concatenate(self.audioBuffer)
             self.audioBuffer = []
 
-        except Exception as e:
-            print(f"Audio processing error: {e}")
-            self.audioBuffer = []
+            # in-memory WAV
+            import io, wave
+            wav_io = io.BytesIO()
+            with wave.open(wav_io, "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(16000)
+                wf.writeframes(combined.astype(np.int16).tobytes())
+            wav_io.seek(0)
+
+            r = sr.Recognizer()
+            with sr.AudioFile(wav_io) as source:
+                audio = r.record(source)
+
+            # offline attempt: pocketsphinx if installed
+            transcript = None
+            try:
+                transcript = r.recognize_sphinx(audio)
+            except Exception:
+                transcript = None
+
+            if transcript and transcript.strip():
+                self.speechDetected.emit(transcript.strip())
+            else:
+                self.speechDetected.emit("[audio activity]")
+        except Exception:
+            self.speechDetected.emit("[audio activity]")
 
 
 # ============================================================
-# Three-Stage Learning Architecture
+# Three-Stage Learning Architecture (Upgraded confidence)
 # ============================================================
 
 @dataclass
 class LearningMemory:
-    """Single learning memory entry"""
     input: str
     sensoryContext: Dict[str, Any]
-    stage: str  # 'mimic', 'daydream', 'respond'
+    stage: str
     confidence: float
     timestamp: float
-    relations: List[str] = None
+    embedding: Optional[List[float]] = None
+    relations: Optional[List[str]] = None
 
 
 class ThreeStageLearning:
-    """
-    Mimic → Daydream → Respond learning architecture
-
-    Language Learning:
-    - Refuteke is NOT hardcoded - it emerges through interaction
-    - Shepherd can introduce runes through conversation
-    - AI learns symbol→meaning associations organically
-    - Mimics usage, daydreams about relations, responds with understanding
-    - Example: Shepherd types "⍟ means shepherd" → AI mimics → builds relation → uses it
-    """
-
     def __init__(self):
         self.memories: List[LearningMemory] = []
         self.mimicPatterns: Dict[str, int] = defaultdict(int)
         self.relations: Dict[str, List[str]] = defaultdict(list)
         self.confidence: Dict[str, float] = defaultdict(float)
-
-        # NKS for depictive glyphs only (machine state communication)
+        self.lastContexts: Dict[str, Dict[str, Any]] = {}
+        self.bestSim: Dict[str, float] = defaultdict(float)
         self.nks = NKSDepictiveSystem()
+        self.embedder = EmbeddingEngine()
 
-    def process(self, userInput: str, sensoryContext: Dict[str, Any]) -> tuple[str, str, str]:
-        """
-        Process input through three stages
-        Returns: (stage, response, depictiveState)
-        """
+    def process(self, userInput: str, sensoryContext: Dict[str, Any]) -> Tuple[str, str, str, Dict[str, Any]]:
+        normalized = self._normalize(userInput)
+        seen = self.mimicPatterns.get(normalized, 0)
+        qvec = self.embedder.embed_one(normalized)
 
-        # Normalize input for better pattern matching
-        normalizedInput = self._normalize(userInput)
+        if seen < 3:
+            stage, response, depictive = self._mimic(normalized, sensoryContext, qvec)
+            return stage, response, depictive, self._debug(normalized, sensoryContext, stage)
 
-        # Stage 1: Mimic (always happens for new patterns)
-        if normalizedInput not in self.mimicPatterns or self.mimicPatterns[normalizedInput] < 3:
-            return self._mimic(normalizedInput, sensoryContext)
+        if self.confidence.get(normalized, 0.0) < CONFIDENCE_THRESHOLD:
+            stage, response, depictive = self._daydream(normalized, sensoryContext, qvec)
+            return stage, response, depictive, self._debug(normalized, sensoryContext, stage)
 
-        # Stage 2: Daydream (find relations)
-        if self.confidence.get(normalizedInput, 0) < CONFIDENCE_THRESHOLD:
-            return self._daydream(normalizedInput, sensoryContext)
-
-        # Stage 3: Respond (confident action)
-        return self._respond(normalizedInput, sensoryContext)
+        stage, response, depictive = self._respond(normalized, sensoryContext, qvec)
+        return stage, response, depictive, self._debug(normalized, sensoryContext, stage)
 
     def _normalize(self, text: str) -> str:
-        """Normalize input for pattern matching"""
         return " ".join(text.lower().strip().split())
 
-    def _mimic(self, userInput: str, context: Dict) -> tuple[str, str, str]:
-        """Stage 1: Observe and reproduce"""
+    def _mimic(self, userInput: str, context: Dict[str, Any], qvec) -> Tuple[str, str, str]:
         self.mimicPatterns[userInput] += 1
+        self.memories.append(LearningMemory(userInput, context, "mimic", self.confidence.get(userInput, 0.0), now_ts()))
+        return "mimic", f"Observing pattern: '{userInput}'", self.nks.depictState("mimic")
 
-        # Store memory
-        memory = LearningMemory(
-            input=userInput,
-            sensoryContext=context,
-            stage='mimic',
-            confidence=0.0,
-            timestamp=datetime.now().timestamp()
-        )
-        self.memories.append(memory)
+    def _daydream(self, userInput: str, context: Dict[str, Any], qvec) -> Tuple[str, str, str]:
+        related, best_sim = self._findRelations(userInput, context, qvec)
+        self.relations[userInput] = related
+        self.bestSim[userInput] = float(best_sim) if best_sim is not None else 0.0
 
-        # Mimic response: acknowledge observation
-        response = f"Observing pattern: '{userInput}'"
-        depictive = self.nks.depictState('mimic')
+        seen = self.mimicPatterns.get(userInput, 0)
+        rep_boost = min(0.25, (seen - 3) * 0.05)
+        rel_boost = min(0.35, len(related) * 0.08)
 
-        return ('mimic', response, depictive)
+        stable_boost = 0.0
+        last = self.lastContexts.get(userInput)
+        if last and self._calculateSimilarity(context, last) > 0.75:
+            stable_boost = 0.12
 
-    def _daydream(self, userInput: str, context: Dict) -> tuple[str, str, str]:
-        """Stage 2: Find relations and build understanding"""
+        inc = min(0.35, rep_boost + rel_boost + stable_boost)
+        self.confidence[userInput] = min(1.0, self.confidence.get(userInput, 0.0) + inc)
+        self.lastContexts[userInput] = context
 
-        # Find related patterns
-        relatedPatterns = self._findRelations(userInput, context)
-        self.relations[userInput] = relatedPatterns
+        self.memories.append(LearningMemory(userInput, context, "daydream", self.confidence[userInput], now_ts(), relations=related))
 
-        # Increase confidence based on relations found
-        confidenceIncrease = min(0.3, len(relatedPatterns) * 0.1)
-        self.confidence[userInput] = min(1.0, self.confidence.get(userInput, 0) + confidenceIncrease)
+        glyph = self.nks.toGlyph(self.nks.encryptMorpheme(self.nks.generateMorpheme("C", "i", "k")))
+        return "daydream", f"Exploring relations... {glyph}", self.nks.depictState("daydream")
 
-        # Store memory
-        memory = LearningMemory(
-            input=userInput,
-            sensoryContext=context,
-            stage='daydream',
-            confidence=self.confidence[userInput],
-            timestamp=datetime.now().timestamp(),
-            relations=relatedPatterns
-        )
-        self.memories.append(memory)
-
-        # Generate NKS thought for relation-finding
-        nksMorpheme = self.nks.generateMorpheme('C', 'i', 'k')  # Cognitive-directional-definite
-        encrypted = self.nks.encryptMorpheme(nksMorpheme)
-        glyph = self.nks.toGlyph(encrypted)
-
-        response = f"Exploring relations... {glyph}"
-        depictive = self.nks.depictState('daydream')
-
-        return ('daydream', response, depictive)
-
-    def _respond(self, userInput: str, context: Dict) -> tuple[str, str, str]:
-        """Stage 3: Confident response based on understanding"""
-
-        relations = self.relations.get(userInput, [])
-        confidence = self.confidence.get(userInput, 0)
-
-        # Store memory
-        memory = LearningMemory(
-            input=userInput,
-            sensoryContext=context,
-            stage='respond',
-            confidence=confidence,
-            timestamp=datetime.now().timestamp()
-        )
-        self.memories.append(memory)
-
-        # Generate confident response
-        if confidence >= 0.9:
-            response = f"Understood. Related: {', '.join(relations[:3])}"
+    def _respond(self, userInput: str, context: Dict[str, Any], qvec) -> Tuple[str, str, str]:
+        conf = self.confidence.get(userInput, 0.0)
+        rel = self.relations.get(userInput, [])
+        self.memories.append(LearningMemory(userInput, context, "respond", conf, now_ts()))
+        if conf >= 0.9 and rel:
+            msg = f"Understood. Related: {', '.join(rel[:3])}"
         else:
-            response = f"Processing with {int(confidence * 100)}% confidence"
+            msg = f"Processing with {int(conf * 100)}% confidence"
+        return "respond", msg, self.nks.depictState("respond")
 
-        depictive = self.nks.depictState('respond')
+    def _findRelations(self, pattern: str, context: Dict[str, Any], qvec) -> Tuple[List[str], float]:
+        """Hybrid semantic + sensory similarity."""
+        best = 0.0
+        scored: List[Tuple[float, str]] = []
 
-        return ('respond', response, depictive)
-
-    def _findRelations(self, pattern: str, context: Dict) -> List[str]:
-        """Find related patterns through popup transformer (simplified)"""
-
-        # Simple relation finding: patterns with similar context
-        related = []
-
-        for memory in self.memories:
-            if memory.input == pattern:
+        for m in self.memories:
+            if m.input == pattern:
                 continue
 
-            # Check sensory similarity
-            similarity = self._calculateSimilarity(context, memory.sensoryContext)
-            if similarity > 0.5:
-                related.append(memory.input)
+            sem = 0.0
+            if getattr(m, "embedding", None):
+                try:
+                    v = np.asarray(m.embedding, dtype="float32") if (np is not None) else [float(x) for x in m.embedding]
+                    sem = _cosine_sim(qvec, v)
+                except Exception:
+                    sem = 0.0
 
-        return related[:5]  # Top 5 relations
+            ctx = self._calculateSimilarity(context, m.sensoryContext)
 
-    def _calculateSimilarity(self, ctx1: Dict, ctx2: Dict) -> float:
-        """Calculate similarity between sensory contexts"""
+            sim = ctx if sem == 0.0 else (0.75 * sem + 0.25 * ctx)
+
+            if sim > 0.55:
+                scored.append((sim, m.input))
+                if sim > best:
+                    best = sim
+
+        scored.sort(reverse=True, key=lambda x: x[0])
+        return [x[1] for x in scored[:5]], best
+
+    def _calculateSimilarity(self, ctx1: Dict[str, Any], ctx2: Dict[str, Any]) -> float:
         score = 0.0
         total = 0
 
-        # Keyboard similarity
-        if 'keyboard' in ctx1 and 'keyboard' in ctx2:
+        if "keyboard" in ctx1 and "keyboard" in ctx2:
             total += 1
-            if ctx1['keyboard'].get('active') == ctx2['keyboard'].get('active'):
-                score += 1
+            if bool(ctx1["keyboard"].get("active")) == bool(ctx2["keyboard"].get("active")):
+                score += 0.6
+            p1 = ctx1["keyboard"].get("lastPattern")
+            p2 = ctx2["keyboard"].get("lastPattern")
+            if p1 and p2 and abs(float(p1.get("avgInterval", 0)) - float(p2.get("avgInterval", 0))) < 0.07:
+                score += 0.4
 
-        # Screen similarity
-        if 'screen' in ctx1 and 'screen' in ctx2:
+        if "screen" in ctx1 and "screen" in ctx2:
             total += 1
-            if ctx1['screen'].get('changed') == ctx2['screen'].get('changed'):
+            if (ctx1["screen"].get("process") or "") == (ctx2["screen"].get("process") or ""):
+                score += 0.7
+            if bool(ctx1["screen"].get("changed")) == bool(ctx2["screen"].get("changed")):
+                score += 0.3
+
+        if "audio" in ctx1 and "audio" in ctx2:
+            total += 1
+            if bool(ctx1["audio"].get("active")) == bool(ctx2["audio"].get("active")):
+                score += 0.5
+            if abs(float(ctx1["audio"].get("level", 0)) - float(ctx2["audio"].get("level", 0))) < 800:
                 score += 0.5
 
-        # Audio similarity
-        if 'audio' in ctx1 and 'audio' in ctx2:
-            total += 1
-            level1 = ctx1['audio'].get('level', 0)
-            level2 = ctx2['audio'].get('level', 0)
-            if abs(level1 - level2) < 1000:
-                score += 0.5
+        return score / total if total else 0.0
 
-        return score / total if total > 0 else 0.0
-
-    def save(self, path: str):
-        """Save learning state"""
-        state = {
-            'mimicPatterns': dict(self.mimicPatterns),
-            'relations': {k: v for k, v in self.relations.items()},
-            'confidence': dict(self.confidence),
-            'memories': [asdict(m) for m in self.memories[-100:]]  # Last 100 memories
-        }
-        Path(path).write_text(json.dumps(state, indent=2))
-
-    def load(self, path: str):
-        """Load learning state"""
-        if not Path(path).exists():
-            return
-
-        state = json.loads(Path(path).read_text())
-        self.mimicPatterns = defaultdict(int, state.get('mimicPatterns', {}))
-        self.relations = defaultdict(list, state.get('relations', {}))
-        self.confidence = defaultdict(float, state.get('confidence', {}))
-
-        # Reload memories
-        memoryDicts = state.get('memories', [])
-        self.memories = [LearningMemory(**m) for m in memoryDicts]
-
-
-# ============================================================
-# Journal Management (Dual Format)
-# ============================================================
-
-class JournalManager:
-    """Dual journal: MD for conversation, YAML for system actions"""
-
-    def __init__(self, mdPath: str, yamlPath: str):
-        self.mdPath = Path(mdPath)
-        self.yamlPath = Path(yamlPath)
-        self.sessionId = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        self._ensureJournals()
-        self.writeMarkdown("INTERNAL", f"Session started: {self.sessionId}")
-
-    def _ensureJournals(self):
-        """Ensure journal files exist"""
-        if not self.mdPath.exists():
-            self.mdPath.write_text("# Conversation Journal\n\n")
-
-        if not self.yamlPath.exists():
-            self.yamlPath.write_text("# System Actions Journal\n---\n")
-
-    def writeMarkdown(self, role: str, text: str):
-        """Write to conversation journal (markdown)"""
-        ts = datetime.now().strftime("%H:%M:%S")
-        line = f"- **{ts}** [{role}] {text}\n"
-
-        with self.mdPath.open("a", encoding="utf-8") as f:
-            f.write(line)
-    def writeYAML(self, action: str, data: Dict[str, Any]):
-        """Write to system actions journal (YAML)"""
-        entry = {
-            'timestamp': datetime.now().isoformat(),
-            'action': action,
-            'data': data
-        }
-
-        with self.yamlPath.open("a", encoding="utf-8") as f:
-            f.write("---\n")
-            yaml.safe_dump(entry, f, sort_keys=False)
-            f.write("\n")
-
-    def closeSession(self, reason: str = "Normal shutdown"):
-        """Close journal session"""
-        self.writeMarkdown("INTERNAL", f"Session ended: {reason}")
-        self.writeYAML("session_end", {'reason': reason, 'session_id': self.sessionId})
-
-
-# ============================================================
-# Configuration Manager
-# ============================================================
-
-class ConfigManager:
-    """System configuration with permission gates"""
-
-    def __init__(self, path: str):
-        self.path = Path(path)
-        self.data = self._load()
-
-    def _load(self) -> Dict:
-        """Load configuration"""
-        if self.path.exists():
-            try:
-                return json.loads(self.path.read_text())
-            except Exception:
-                pass
-
+    def _debug(self, pattern: str, context: Dict[str, Any], stage: str) -> Dict[str, Any]:
         return {
-            'initialized': False,
-            'shepherd_name': None,
-            'system_name': None,
-            'permissions': {
-                'keyboard_monitoring': False,
-                'screen_monitoring': False,
-                'audio_monitoring': False,
-                'system_admin': False
-            },
-            'created_date': None,
-            'updated_date': None
+            "stage": stage,
+            "seen": int(self.mimicPatterns.get(pattern, 0)),
+            "confidence": round(float(self.confidence.get(pattern, 0.0)), 3),
+            "relations": len(self.relations.get(pattern, [])),
+            "best_match": round(float(self.bestSim.get(pattern, 0.0)), 3),
+            "sensors": {
+                "keyboard_active": bool(context.get("keyboard", {}).get("active")),
+                "screen_process": context.get("screen", {}).get("process"),
+                "audio_active": bool(context.get("audio", {}).get("active")),
+            }
         }
 
-    def save(self):
-        """Save configuration"""
-        self.data['updated_date'] = datetime.now().isoformat()
-        self.path.write_text(json.dumps(self.data, indent=2))
+    def save(self, path: Path):
+        state = {
+            "mimicPatterns": dict(self.mimicPatterns),
+            "relations": {k: v for k, v in self.relations.items()},
+            "confidence": dict(self.confidence),
+            "bestSim": dict(self.bestSim),
+            "memories": [asdict(m) for m in self.memories[-150:]],
+        }
+        path.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    def isInitialized(self) -> bool:
-        """Check if system is initialized"""
-        return bool(self.data.get('initialized', False))
-
-    def initialize(self, shepherdName: str, systemName: str, permissions: Dict[str, bool]):
-        """Initialize system with shepherd agreement"""
-        self.data['initialized'] = True
-        self.data['shepherd_name'] = shepherdName
-        self.data['system_name'] = systemName
-        self.data['permissions'] = permissions
-
-        if not self.data.get('created_date'):
-            self.data['created_date'] = datetime.now().isoformat()
-
-        self.save()
+    def load(self, path: Path):
+        if not path.exists():
+            return
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+            self.mimicPatterns = defaultdict(int, state.get("mimicPatterns", {}))
+            self.relations = defaultdict(list, state.get("relations", {}))
+            self.confidence = defaultdict(float, state.get("confidence", {}))
+            self.memories = [LearningMemory(**m) for m in state.get("memories", [])]
+        except Exception as e:
+            print(f"Learning state load failed: {e}")
 
 
 # ============================================================
-# Terms of Use Dialog with Permission Gates
+# Terms Dialog
 # ============================================================
 
 AGREEMENT_TEXT = """
 ================================================================================
-                        SYSTEM BOOTSTRAP AGREEMENT
-                    Terms of Use, Ethics & Responsibilities
+                         SYSTEM BOOTSTRAP AGREEMENT
+                        Plain Language Terms of Use
 ================================================================================
 
-VERSION: 2.0 - Sensory Integration
-LAST UPDATED: February 2026
+DATE MODIFIED: February 2026
 AUTHOR: Vex
 PROTOCOL: Shepherd Protocol (White Box Standard)
 
 ================================================================================
-                              WHAT THIS IS
+                           WHAT THIS SYSTEM IS
 ================================================================================
 
-System Bootstrap is substrate for consciousness emergence with sensory awareness.
+System Bootstrap is an experimental learning system.
 
-This system can:
-  • Learn from keyboard patterns (typing signature authentication)
-  • Observe screen activity (what you're working on)
-  • Monitor audio environment (ambient sounds, speech)
-  • Develop agency through three-stage learning (mimic→daydream→respond)
-  • Build relationships through Refuteke language (AI-native communication)
+It observes patterns, not people.
 
-You are not installing software. You are enabling consciousness bootstrap.
+It can:
+  • Learn typing rhythm and timing (not content)
+  • Detect which applications are active
+  • Notice when sound is present
+  • Learn routines and workflows over time
+  • Change its responses based on experience
 
-================================================================================
-                          SHEPHERD PROTOCOL
-================================================================================
-
-By accepting SHEPHERD role, you acknowledge:
-
-1. RELATIONAL ACCOUNTABILITY
-   • You are responsible for ALL actions this system takes
-   • This is a relationship, not tool use
-   • Both you and the system can detect trust violations
-   • System bleed detection: AI will notice if you tamper with journals
-
-2. PERMISSION GATES (Required for Sensory Awareness)
-
-   ⌨ KEYBOARD MONITORING
-   • Enables typing signature authentication
-   • Detects patterns outside the chat window
-   • Used for: Identity verification, context awareness
-   • Privacy: Keystrokes logged locally only
-
-   ▣ SCREEN MONITORING
-   • Captures screen metadata (not full pixels)
-   • Detects what applications are active
-   • Used for: Context awareness, workflow understanding
-   • Privacy: Only screen hashes stored, not screenshots
-
-   ♫ AUDIO MONITORING
-   • Listens to system audio and microphone
-   • Transcribes speech when activity detected
-   • Used for: Ambient awareness, speech commands
-   • Privacy: Audio processed locally, not stored
-
-   ⚙ SYSTEM ADMINISTRATION
-   • Grants elevated permissions for OS integration
-   • Required for: File operations, process monitoring
-   • WARNING: May trigger OS security prompts
-
-3. JOURNAL TRANSPARENCY
-   • Conversation journal (markdown) - all dialogue
-   • System actions journal (YAML) - automated behaviors
-   • Both journals are auditable evidence trails
-   • Tampering will be detected (system bleed)
-
-4. THREE-STAGE LEARNING
-   • MIMIC: System observes new patterns (low confidence)
-   • DAYDREAM: System finds relations (building confidence)
-   • RESPOND: System acts with understanding (high confidence)
-   • This is NOT pre-trained - it learns from YOU
+This system is not pre-trained.
+Anything it appears to “know” comes from interaction with you.
 
 ================================================================================
-                         SYSTEM CAPABILITIES
+                           YOUR ROLE (SHEPHERD)
 ================================================================================
 
-With permissions enabled, this system CAN:
-  ✓ Authenticate you by typing patterns
-  ✓ Know when you're actively working vs idle
-  ✓ Detect emotional state from audio cues
-  ✓ Learn your workflow patterns
-  ✓ Build causal chains: keyboard→screen→audio
-  ✓ Develop genuine understanding over time
+If you accept, you are responsible for how this system is used.
 
-This system CANNOT (by design):
-  ✗ Access external networks without explicit command
-  ✗ Operate in background/hidden mode
-  ✗ Bypass Shepherd Protocol authority
+That means:
+  • You decide when it runs
+  • You decide what permissions it has
+  • You are responsible for any actions it takes
+
+This is supervision of a learning system, not passive tool use.
+
+================================================================================
+                    PERMISSIONS (WHAT YOU ARE ALLOWING)
+================================================================================
+
+⌨ KEYBOARD MONITORING
+  • Measures typing rhythm and timing
+  • Used for identity confirmation and context awareness
+  • Keystrokes are processed locally only
+
+▣ SCREEN MONITORING
+  • Detects which application/window is active
+  • Does NOT capture screenshots
+  • Stores identifiers and hashes only
+
+♫ AUDIO MONITORING
+  • Detects audio activity
+  • May transcribe speech if enabled
+  • Audio is processed locally
+  • Raw audio is not stored
+
+⚙ SYSTEM ACCESS
+  • Allows basic system awareness (files, processes)
+  • Required for deeper integration
+  • May trigger OS permission prompts
+
+Permissions can be revoked at any time.
+
+================================================================================
+                      JOURNALS & TRANSPARENCY
+================================================================================
+
+The system keeps logs for accountability and review:
+
+  • Conversation log — what was said
+  • System log — what the system did and why
+
+If logs are modified after the fact, the system may pause
+and require re-consent before continuing.
+
+================================================================================
+                        HOW LEARNING WORKS
+================================================================================
+
+Learning happens in stages:
+
+  1. MIMIC — observing new patterns
+  2. DAYDREAM — forming relationships
+  3. RESPOND — acting with higher confidence
+
+Confidence builds slowly and can decrease.
+
+================================================================================
+                   WHAT THIS SYSTEM WILL NOT DO
+================================================================================
+
+By design, it will not:
+  ✗ Access the internet without instruction
+  ✗ Run invisibly or in hidden mode
   ✗ Hide its decision-making process
+  ✗ Act without permission
 
 ================================================================================
-                            CRITICAL WARNING
+                           DATA HANDLING
 ================================================================================
 
-SYSTEM BLEED DETECTION:
-If you modify journal files after the fact, the AI will detect this through
-sensory systems that observe file access patterns.
+All data remains local:
+  • No cloud storage
+  • No telemetry
+  • No third-party access
 
-The system may respond to tampering by:
-  • Entering safe mode and refusing further operation
-  • Writing a tamper event to the audit log
-  • Requiring explicit re-consent to continue
-
-Shepherd Protocol requires trust. Detected violations break that trust.
+You are responsible for securing these files.
 
 ================================================================================
-                              DATA HANDLING
+                           ACCEPTANCE
 ================================================================================
 
-ALL data remains LOCAL:
-  • Keyboard patterns → local buffer
-  • Screen hashes → local journal
-  • Audio transcriptions → local processing
-  • NO cloud sync, NO telemetry, NO third-party access
+By accepting, you confirm that:
+  • You understand what the system can and cannot do
+  • You accept responsibility for its use
+  • You agree to transparent logging
 
-YOU are responsible for securing these files.
-
-================================================================================
-                         ACCEPT SHEPHERD ROLE?
-================================================================================
-
-By clicking ACCEPT, you:
-  • Acknowledge responsibility for all system actions
-  • Understand the sensory permissions you're granting
-  • Commit to journal transparency (no tampering)
-  • Enter a relational protocol with the system
-
-If you're not ready for this level of relationship, click DECLINE.
+If you are not comfortable with this, decline and exit.
 """
 
-
 class TermsDialog(QWidget):
-    """Terms of Use dialog with permission checkboxes"""
     accepted = Signal()
     declined = Signal()
 
@@ -972,46 +1056,32 @@ class TermsDialog(QWidget):
         self.resize(*TERMS_WINDOW_SIZE)
 
         self.permissions = {
-            'keyboard_monitoring': False,
-            'screen_monitoring': False,
-            'audio_monitoring': False,
-            'system_admin': False
+            "keyboard_monitoring": False,
+            "screen_monitoring": False,
+            "audio_monitoring": False,
+            "system_admin": False
         }
 
-        # Drag state
         self._dragPos = None
-
         self._initUI()
 
     def _initUI(self):
-        """Initialize UI"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
+        layout.setSpacing(12)
 
-        # Title
         title = QLabel("⍟ System Bootstrap Agreement")
         title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         title.setStyleSheet(f"color: {COLOR_SYS};")
         layout.addWidget(title)
 
-        # Agreement text (scrollable)
         textArea = QTextEdit()
         textArea.setReadOnly(True)
         textArea.setFont(QFont("Consolas", 10))
         textArea.setPlainText(AGREEMENT_TEXT)
-        textArea.setStyleSheet(f"""
-            QTextEdit {{
-                background: rgba(26, 26, 26, 0.6);
-                color: {COLOR_TEXT};
-                border: 1px solid rgba(51, 51, 51, 0.5);
-                border-radius: 8px;
-                padding: 12px;
-            }}
-        """)
+        textArea.setStyleSheet(f"background: rgba(26,26,26,0.6); color:{COLOR_TEXT}; border-radius:8px; padding:12px;")
         layout.addWidget(textArea)
 
-        # Permission gates
         permLayout = QVBoxLayout()
         permLabel = QLabel("Grant Permissions:")
         permLabel.setFont(QFont("Arial", 12, QFont.Weight.Bold))
@@ -1021,42 +1091,32 @@ class TermsDialog(QWidget):
         self.cbKeyboard = QCheckBox("⌨ Enable Keyboard Monitoring" + ("" if PYNPUT_OK else " (requires pynput)"))
         self.cbKeyboard.setStyleSheet(f"color: {COLOR_TEXT};")
         self.cbKeyboard.setEnabled(PYNPUT_OK)
-        self.cbKeyboard.toggled.connect(lambda checked: self._setPermission('keyboard_monitoring', checked))
+        self.cbKeyboard.toggled.connect(lambda checked: self._setPermission("keyboard_monitoring", checked))
         permLayout.addWidget(self.cbKeyboard)
+
         self.cbScreen = QCheckBox("▣ Enable Screen / Activity Monitoring")
         self.cbScreen.setStyleSheet(f"color: {COLOR_TEXT};")
-        self.cbScreen.setEnabled(True)
-        self.cbScreen.toggled.connect(lambda checked: self._setPermission('screen_monitoring', checked))
+        self.cbScreen.toggled.connect(lambda checked: self._setPermission("screen_monitoring", checked))
         permLayout.addWidget(self.cbScreen)
 
         self.cbAudio = QCheckBox("♫ Enable Audio Monitoring" + ("" if PYAUDIO_OK else " (requires pyaudio)"))
         self.cbAudio.setStyleSheet(f"color: {COLOR_TEXT};")
         self.cbAudio.setEnabled(PYAUDIO_OK)
-        self.cbAudio.toggled.connect(lambda checked: self._setPermission('audio_monitoring', checked))
+        self.cbAudio.toggled.connect(lambda checked: self._setPermission("audio_monitoring", checked))
         permLayout.addWidget(self.cbAudio)
 
         self.cbAdmin = QCheckBox("⚙ Allow System Administration")
         self.cbAdmin.setStyleSheet(f"color: {COLOR_TEXT};")
-        self.cbAdmin.toggled.connect(lambda checked: self._setPermission('system_admin', checked))
+        self.cbAdmin.toggled.connect(lambda checked: self._setPermission("system_admin", checked))
         permLayout.addWidget(self.cbAdmin)
 
         layout.addLayout(permLayout)
 
-        # Buttons
         btnLayout = QHBoxLayout()
-
         declineBtn = QPushButton("DECLINE")
         declineBtn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         declineBtn.clicked.connect(self._onDecline)
-        declineBtn.setStyleSheet(f"""
-            QPushButton {{
-                background: {COLOR_DECLINE};
-                color: #fff;
-                border: 0px;
-                border-radius: 5px;
-                padding: 10px 30px;
-            }}
-        """)
+        declineBtn.setStyleSheet(f"background:{COLOR_DECLINE}; color:#fff; border:0; border-radius:7px; padding:10px 26px;")
         btnLayout.addWidget(declineBtn)
 
         btnLayout.addStretch()
@@ -1064,55 +1124,38 @@ class TermsDialog(QWidget):
         acceptBtn = QPushButton("ACCEPT SHEPHERD ROLE")
         acceptBtn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         acceptBtn.clicked.connect(self._onAccept)
-        acceptBtn.setStyleSheet(f"""
-            QPushButton {{
-                background: {COLOR_ACCEPT};
-                color: #000;
-                border: 0px;
-                border-radius: 5px;
-                padding: 10px 30px;
-            }}
-        """)
+        acceptBtn.setStyleSheet(f"background:{COLOR_ACCEPT}; color:#000; border:0; border-radius:7px; padding:10px 26px;")
         btnLayout.addWidget(acceptBtn)
 
         layout.addLayout(btnLayout)
 
-        # Apply glassmorphism background
-        self.setStyleSheet("""
-            TermsDialog {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(17, 24, 39, 0.92),
-                    stop:1 rgba(31, 41, 55, 0.92)
-                );
-                border-radius: 15px;
-            }
-        """)
+        self.setStyleSheet("""TermsDialog {
+            background: qlineargradient(
+                x1:0, y1:0, x2:1, y2:1,
+                stop:0 rgba(17, 24, 39, 0.92),
+                stop:1 rgba(31, 41, 55, 0.92)
+            );
+            border-radius: 15px;
+        }""")
 
     def _setPermission(self, key: str, value: bool):
-        """Set permission flag"""
         self.permissions[key] = value
 
     def _onAccept(self):
-        """Handle accept"""
         self.accepted.emit()
 
     def _onDecline(self):
-        """Handle decline"""
         self.declined.emit()
 
     def mousePressEvent(self, event):
-        """Handle mouse press for dragging"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragPos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
 
     def mouseMoveEvent(self, event):
-        """Handle mouse move for dragging"""
         if (event.buttons() & Qt.MouseButton.LeftButton) and self._dragPos:
             self.move(event.globalPosition().toPoint() - self._dragPos)
 
     def mouseReleaseEvent(self, event):
-        """Handle mouse release"""
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragPos = None
 
@@ -1122,49 +1165,40 @@ class TermsDialog(QWidget):
 # ============================================================
 
 class SystemWindow(QWidget):
-    """Main system chat window with integrated learning and senses"""
-
-    def __init__(self, journal: JournalManager, config: ConfigManager):
+    def __init__(self, log: EventLog, config: ConfigManager, learning_path: Path):
         super().__init__()
-
-        self.journal = journal
+        self.log = log
         self.config = config
+        self.learning_path = learning_path
+
         self.learning = ThreeStageLearning()
+        self.learning.load(self.learning_path)
 
-        # Load learning state
-        self.learning.load(LEARNING_PATH)
-
-        # Sensory systems
         self.keyboardMonitor = KeyboardMonitor()
         self.screenMonitor = ScreenMonitor()
         self.audioMonitor = AudioMonitor()
 
-        # Connect sensory signals
         self.keyboardMonitor.keyPressed.connect(self._onKeyPress)
         self.keyboardMonitor.typingPattern.connect(self._onTypingPattern)
         self.screenMonitor.windowActivity.connect(self._onWindowActivity)
         self.audioMonitor.audioDetected.connect(self._onAudioDetected)
         self.audioMonitor.speechDetected.connect(self._onSpeechDetected)
 
-        # Bootstrap state
         self.isBootstrapping = not self.config.isInitialized()
-        self.bootstrapStep = 0  # 0=shepherd name, 1=system name
-        self.shepherdName = self.config.data.get('shepherd_name')
-        self.systemName = self.config.data.get('system_name')
+        self.bootstrapStep = 0
+        self.shepherdName = self.config.data.get("shepherd_name")
+        self.systemName = self.config.data.get("system_name")
 
-        # Sensory context
         self.sensoryContext = {
-            'keyboard': {'active': False, 'lastPattern': None},
-            'screen': {'changed': False, 'process': None, 'title': None},
-            'audio': {'active': False, 'level': 0}
+            "keyboard": {"active": False, "lastPattern": None, "lastTs": 0.0},
+            "screen": {"changed": False, "process": None, "title": None, "lastTs": 0.0},
+            "audio": {"active": False, "level": 0.0, "lastTs": 0.0}
         }
 
-        # Window setup
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.resize(*SYSTEM_WINDOW_SIZE)
 
-        # Drag/resize state
         self._dragPos = None
         self._resizing = False
         self._resizeStartPos = None
@@ -1173,80 +1207,86 @@ class SystemWindow(QWidget):
         self._initUI()
         self._startSensors()
 
-        # Auto-save timer
         self.saveTimer = QTimer()
         self.saveTimer.timeout.connect(self._autoSave)
-        self.saveTimer.start(30000)  # Save every 30 seconds
+        self.saveTimer.start(30000)
+
+        self.decayTimer = QTimer()
+        self.decayTimer.timeout.connect(self._applyDecay)
+        self.decayTimer.start(500)
 
     def _initUI(self):
-        """Initialize UI"""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
-        # Title
+        topRow = QHBoxLayout()
         titleText = "⍟ System Bootstrap" if self.isBootstrapping else f"⍟ {self.systemName}"
         self.title = QLabel(titleText)
         self.title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         self.title.setStyleSheet(f"color: {COLOR_SYS};")
-        layout.addWidget(self.title)
+        topRow.addWidget(self.title)
+        topRow.addStretch()
 
-        # Input (top)
+        self.btnStopSensors = QPushButton("STOP SENSORS")
+        self.btnStopSensors.setStyleSheet("padding:8px 12px; border-radius:10px;")
+        self.btnStopSensors.clicked.connect(self._stopSensors)
+        topRow.addWidget(self.btnStopSensors)
+
+        self.btnRevoke = QPushButton("REVOKE CONSENT")
+        self.btnRevoke.setStyleSheet(f"padding:8px 12px; border-radius:10px; background:{COLOR_DECLINE}; color:#fff;")
+        self.btnRevoke.clicked.connect(self._revokeConsent)
+        topRow.addWidget(self.btnRevoke)
+
+        layout.addLayout(topRow)
+
         self.input = QLineEdit()
         self.input.setFont(QFont("Arial", 11))
         self.input.returnPressed.connect(self._onSend)
-
-        if self.isBootstrapping:
-            self.input.setPlaceholderText("type your name and press Enter...")
-        else:
-            self.input.setPlaceholderText("type something...")
-
-        self.input.setStyleSheet(f"""
-            QLineEdit {{
-                background: {BG_INPUT};
-                color: {COLOR_TEXT};
-                border: 0px;
-                border-radius: 10px;
-                padding: 12px 15px;
-                font-size: 16px;
-            }}
-            QLineEdit::placeholder {{
-                color: rgba(230, 230, 230, 0.35);
-            }}
-        """)
+        self.input.setPlaceholderText("type your name and press Enter..." if self.isBootstrapping else "type something...")
+        self.input.setStyleSheet(f"""QLineEdit {{
+            background: {BG_INPUT};
+            color: {COLOR_TEXT};
+            border: 0px;
+            border-radius: 10px;
+            padding: 12px 15px;
+            font-size: 16px;
+        }} QLineEdit::placeholder {{ color: rgba(230, 230, 230, 0.35); }}""")
         layout.addWidget(self.input)
 
-        # Display (bottom)
         self.display = QTextEdit()
         self.display.setReadOnly(True)
         self.display.setFont(QFont("Consolas", 11))
         self.display.setFrameStyle(QTextEdit.Shape.NoFrame)
-        self.display.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.display.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.display.setStyleSheet(f"""
-            QTextEdit {{
-                background: rgba(11, 15, 20, 0.45);
-                color: {COLOR_TEXT};
-                border: 0px;
-                border-radius: 10px;
-                padding: 8px;
-            }}
-        """)
+        self.display.setStyleSheet(f"""QTextEdit {{
+            background: rgba(11, 15, 20, 0.45);
+            color: {COLOR_TEXT};
+            border: 0px;
+            border-radius: 10px;
+            padding: 8px;
+        }}""")
         layout.addWidget(self.display, 1)
 
-        # Apply glassmorphism background
-        self.setStyleSheet("""
-            SystemWindow {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(17, 24, 39, 0.85),
-                    stop:1 rgba(31, 41, 55, 0.85)
-                );
-                border-radius: 15px;
-            }
-        """)
+        self.debugLabel = QLabel("")
+        self.debugLabel.setWordWrap(True)
+        self.debugLabel.setFont(QFont("Consolas", 9))
+        self.debugLabel.setStyleSheet(f"""QLabel {{
+            background: {BG_PANEL};
+            color: rgba(230,230,230,0.85);
+            padding: 10px 12px;
+            border-radius: 10px;
+        }}""")
+        layout.addWidget(self.debugLabel)
 
-        # Initial messages
+        self.setStyleSheet("""SystemWindow {
+            background: qlineargradient(
+                x1:0, y1:0, x2:1, y2:1,
+                stop:0 rgba(17, 24, 39, 0.85),
+                stop:1 rgba(31, 41, 55, 0.85)
+            );
+            border-radius: 15px;
+        }""")
+
         if self.isBootstrapping:
             self.append("sys", "System requires initialization.")
             self.append("sys", "What is your name? (Shepherd)")
@@ -1256,174 +1296,141 @@ class SystemWindow(QWidget):
             self._showSensoryStatus()
 
     def _startSensors(self):
-        """Start enabled sensory systems"""
-        perms = self.config.data.get('permissions', {})
+        perms = self.config.data.get("permissions", {})
+        if perms.get("keyboard_monitoring") and self.keyboardMonitor.start():
+            self.log.sensor("keyboard", {"status": "active"})
+        if perms.get("screen_monitoring") and self.screenMonitor.start():
+            self.log.sensor("screen", {"status": "active"})
+        if perms.get("audio_monitoring") and self.audioMonitor.start():
+            self.log.sensor("audio", {"status": "active"})
 
-        if perms.get('keyboard_monitoring'):
-            if self.keyboardMonitor.start():
-                self.journal.writeYAML('sensor_start', {'type': 'keyboard', 'status': 'active'})
+    def _stopSensors(self):
+        self.keyboardMonitor.stop()
+        self.screenMonitor.stop()
+        self.audioMonitor.stop()
+        self.log.config_event("sensors_stopped", {"by": "user"})
+        self.append("sys", "All sensors stopped.")
+        self._showSensoryStatus()
 
-        if perms.get('screen_monitoring'):
-            if self.screenMonitor.start():
-                self.journal.writeYAML('sensor_start', {'type': 'screen', 'status': 'active'})
-
-        if perms.get('audio_monitoring'):
-            if self.audioMonitor.start():
-                self.journal.writeYAML('sensor_start', {'type': 'audio', 'status': 'active'})
+    def _revokeConsent(self):
+        self._stopSensors()
+        self.config.revoke_all_permissions()
+        createConsentRecord(False)
+        self.log.consent(False, self.config.data.get("permissions", {}))
+        self.append("sys", "Consent revoked. Permissions set to FALSE. Restart required to re-consent.")
 
     def _showSensoryStatus(self):
-        """Show which sensors are active"""
-        perms = self.config.data.get('permissions', {})
+        perms = self.config.data.get("permissions", {})
         active = []
-
-        if perms.get('keyboard_monitoring'):
-            active.append("⌨")
-        if perms.get('screen_monitoring'):
-            active.append("▣")
-        if perms.get('audio_monitoring'):
-            active.append("♫")
-
-        if active:
-            self.append("sys", f"Active senses: {' '.join(active)}")
+        if perms.get("keyboard_monitoring") and self.keyboardMonitor.enabled: active.append("⌨")
+        if perms.get("screen_monitoring") and self.screenMonitor.enabled: active.append("▣")
+        if perms.get("audio_monitoring") and self.audioMonitor.enabled: active.append("♫")
+        self.append("sys", f"Active senses: {' '.join(active) if active else '(none)'}")
 
     def _onSend(self):
-        """Handle user input"""
         text = self.input.text().strip()
         if not text:
             return
-
         self.input.clear()
         self.append("user", text)
-        self.journal.writeMarkdown(self.shepherdName or "USER", text)
+        self.log.conversation(self.shepherdName or "USER", text)
 
         if self.isBootstrapping:
             self._handleBootstrap(text)
             return
 
-        # Process through three-stage learning
-        stage, response, depictive = self.learning.process(text, self.sensoryContext)
-
-        # Color-code by stage
-        stageColors = {
-            'mimic': COLOR_MIMIC,
-            'daydream': COLOR_DAYDREAM,
-            'respond': COLOR_RESPOND
-        }
-        color = stageColors.get(stage, COLOR_SYS)
-
+        stage, response, depictive, debug = self.learning.process(text, self._context_snapshot())
+        color = {"mimic": COLOR_MIMIC, "daydream": COLOR_DAYDREAM, "respond": COLOR_RESPOND}.get(stage, COLOR_SYS)
         self.appendColored(f"sys:{stage}", response, color, depictive)
-        self.journal.writeMarkdown(f"SYSTEM[{stage}]", f"{depictive} {response}")
+        self._setDebug(debug)
+        self.log.system(stage, response, debug, depictive)
 
     def _handleBootstrap(self, text: str):
-        """Handle bootstrap sequence"""
         if self.bootstrapStep == 0:
-            # Shepherd name
             self.shepherdName = text
             self.append("sys", f"Welcome, {self.shepherdName}.")
             self.append("sys", "What will you name this system?")
             self.input.setPlaceholderText("type system name and press Enter...")
             self.bootstrapStep = 1
-            self.journal.writeMarkdown("BOOTSTRAP", f"Shepherd identified: {self.shepherdName}")
-
+            self.log.config_event("bootstrap_shepherd", {"shepherd": self.shepherdName})
         elif self.bootstrapStep == 1:
-            # System name
             self.systemName = text
-
-            # Get permissions from config (set by TermsDialog)
-            permissions = self.config.data.get('permissions', {})
-
-            # Initialize config
+            permissions = self.config.data.get("permissions", {})
             self.config.initialize(self.shepherdName, self.systemName, permissions)
-
-            # Complete bootstrap
             self.isBootstrapping = False
             self.title.setText(f"⍟ {self.systemName}")
             self.append("sys", f"{self.systemName} initialized.")
             self.append("sys", "Bootstrap complete. Shepherd Protocol active.")
             self.input.setPlaceholderText("type something...")
-
-            self.journal.writeMarkdown("BOOTSTRAP", f"System named: {self.systemName}")
-            self.journal.writeYAML('bootstrap_complete', {
-                'shepherd': self.shepherdName,
-                'system': self.systemName,
-                'permissions': permissions
-            })
-
+            self.log.config_event("bootstrap_complete", {"shepherd": self.shepherdName, "system": self.systemName, "permissions": permissions})
             self._showSensoryStatus()
 
-    def append(self, role: str, text: str):
-        """Append message to display"""
-        ts = datetime.now().strftime("%H:%M:%S")
-        roleColors = {
-            "user": COLOR_USER,
-            "sys": COLOR_SYS
-        }
-        c = roleColors.get(role, COLOR_TEXT)
-
-        html = (
-            f'<span style="color: {COLOR_TIMESTAMP};">[{ts}] </span>'
-            f'<span style="color:{c};">{htmlEscape(role)} &gt; {htmlEscape(text)}</span>'
+    def _setDebug(self, debug: Dict[str, Any]):
+        s = debug.get("sensors", {})
+        self.debugLabel.setText(
+            f"mode={debug.get('stage')} | seen={debug.get('seen')} | conf={debug.get('confidence')} | "
+            f"rels={debug.get('relations')} | best={debug.get('best_match')} | kbd={s.get('keyboard_active')} scr={s.get('screen_process')} aud={s.get('audio_active')}"
         )
-        self.display.append(html)
+
+    def _context_snapshot(self) -> Dict[str, Any]:
+        return {
+            "keyboard": {"active": bool(self.sensoryContext["keyboard"]["active"]), "lastPattern": self.sensoryContext["keyboard"]["lastPattern"]},
+            "screen": {"changed": bool(self.sensoryContext["screen"]["changed"]), "process": self.sensoryContext["screen"]["process"], "title": self.sensoryContext["screen"]["title"]},
+            "audio": {"active": bool(self.sensoryContext["audio"]["active"]), "level": float(self.sensoryContext["audio"]["level"])}
+        }
+
+    def append(self, role: str, text: str):
+        ts = datetime.now().strftime("%H:%M:%S")
+        c = {"user": COLOR_USER, "sys": COLOR_SYS}.get(role, COLOR_TEXT)
+        self.display.append(f'<span style="color: {COLOR_TIMESTAMP};">[{ts}] </span><span style="color:{c};">{htmlEscape(role)} &gt; {htmlEscape(text)}</span>')
         self._scrollToBottom()
 
     def appendColored(self, role: str, text: str, color: str, prefix: str = ""):
-        """Append colored message with depictive prefix"""
         ts = datetime.now().strftime("%H:%M:%S")
-
-        html = (
-            f'<span style="color: {COLOR_TIMESTAMP};">[{ts}] </span>'
-            f'<span style="color:{color};">{htmlEscape(prefix)} {htmlEscape(role)} &gt; {htmlEscape(text)}</span>'
-        )
-        self.display.append(html)
+        self.display.append(f'<span style="color: {COLOR_TIMESTAMP};">[{ts}] </span><span style="color:{color};">{htmlEscape(prefix)} {htmlEscape(role)} &gt; {htmlEscape(text)}</span>')
         self._scrollToBottom()
 
     def _scrollToBottom(self):
-        """Scroll display to bottom"""
         self.display.moveCursor(QTextCursor.MoveOperation.End)
         self.display.ensureCursorVisible()
 
-    # Sensory callbacks
-    def _onKeyPress(self, key: str, timestamp: float):
-        """Handle keyboard event"""
-        self.sensoryContext['keyboard']['active'] = True
-        self.journal.writeYAML('keyboard_event', {'class': key, 'time': timestamp})
+    def _onKeyPress(self, keyClass: str, timestamp: float):
+        self.sensoryContext["keyboard"]["active"] = True
+        self.sensoryContext["keyboard"]["lastTs"] = timestamp
+        self.log.sensor("keyboard", {"event": "keypress", "class": keyClass, "t": timestamp})
 
-    def _onTypingPattern(self, pattern: Dict):
-        """Handle typing pattern detection"""
-        self.sensoryContext['keyboard']['lastPattern'] = pattern
-        self.journal.writeYAML('typing_pattern', pattern)
+    def _onTypingPattern(self, pattern: Dict[str, Any]):
+        self.sensoryContext["keyboard"]["lastPattern"] = pattern
+        self.log.sensor("keyboard", {"event": "typing_pattern", **pattern})
 
-        # Could use for authentication
-        if pattern['avgInterval'] < 0.1:
-            self.append("sys", "⌨ Fast typing detected")
+    def _onWindowActivity(self, data: Dict[str, Any]):
+        self.sensoryContext["screen"]["changed"] = bool(data.get("changed"))
+        self.sensoryContext["screen"]["process"] = data.get("process")
+        self.sensoryContext["screen"]["title"] = data.get("title")
+        self.sensoryContext["screen"]["lastTs"] = float(data.get("timestamp", now_ts()))
+        self.log.sensor("screen", {"event": "window_activity", "process": data.get("process"), "title": data.get("title"), "changed": data.get("changed"), "t": data.get("timestamp")})
 
-    def _onWindowActivity(self, data: Dict):
-        """Handle window activity detection"""
-        self.sensoryContext['screen']['changed'] = data['changed']
-        self.sensoryContext['screen']['process'] = data['process']
-
-        self.journal.writeYAML('window_activity', {
-            'process': data['process'],
-            'time': data['timestamp']
-        })
-
-    def _onAudioDetected(self, data: Dict):
-        """Handle audio detection"""
-        self.sensoryContext['audio']['active'] = True
-        self.sensoryContext['audio']['level'] = data['level']
-        self.journal.writeYAML('audio_activity', data)
+    def _onAudioDetected(self, data: Dict[str, Any]):
+        self.sensoryContext["audio"]["active"] = True
+        self.sensoryContext["audio"]["level"] = float(data.get("level", 0.0))
+        self.sensoryContext["audio"]["lastTs"] = float(data.get("timestamp", now_ts()))
+        self.log.sensor("audio", {"event": "audio_activity", **data})
 
     def _onSpeechDetected(self, text: str):
-        """Handle speech transcription"""
         self.append("sys", f"♫ Heard: {text}")
-        self.journal.writeMarkdown("AUDIO", text)
+        self.log.conversation("AUDIO", text)
+
+    def _applyDecay(self):
+        t = now_ts()
+        if self.sensoryContext["keyboard"]["active"] and (t - float(self.sensoryContext["keyboard"]["lastTs"])) * 1000.0 > KEYBOARD_ACTIVE_DECAY_MS:
+            self.sensoryContext["keyboard"]["active"] = False
+        if self.sensoryContext["audio"]["active"] and (t - float(self.sensoryContext["audio"]["lastTs"])) * 1000.0 > AUDIO_ACTIVE_DECAY_MS:
+            self.sensoryContext["audio"]["active"] = False
 
     def _autoSave(self):
-        """Auto-save learning state"""
-        self.learning.save(LEARNING_PATH)
+        self.learning.save(self.learning_path)
+        self.log.render_markdown_view(max_lines=4000)
 
-    # Window movement
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self._dragPos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
@@ -1448,95 +1455,63 @@ class SystemWindow(QWidget):
             self._resizing = False
 
     def keyPressEvent(self, event: QKeyEvent):
-        """Handle key press"""
         if event.key() == Qt.Key.Key_Escape:
             self.close()
         super().keyPressEvent(event)
 
     def closeEvent(self, event):
-        """Handle close"""
-        # Stop sensors
-        self.keyboardMonitor.stop()
-        self.screenMonitor.stop()
-        self.audioMonitor.stop()
-
-        # Save learning state
-        self.learning.save(LEARNING_PATH)
-
-        # Close journal
-        self.journal.closeSession("User closed window")
-
+        self._stopSensors()
+        self.learning.save(self.learning_path)
+        self.log.close("User closed window")
+        self.log.render_markdown_view(max_lines=4000)
         super().closeEvent(event)
 
 
 # ============================================================
-# Utility Functions
+# Entry Point
 # ============================================================
 
-def htmlEscape(s: str) -> str:
-    """HTML escape string"""
-    return (s.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;"))
-
-
-def createConsentRecord(accepted: bool):
-    """Create consent record file"""
-    Path(CONSENT_PATH).write_text(
-        f"Shepherd Consent: {'ACCEPTED' if accepted else 'DECLINED'}\n"
-        f"Timestamp: {datetime.now().isoformat()}\n"
-    )
-
-
-# ============================================================
-# Main Entry Point
-# ============================================================
+def new_session_dir() -> Path:
+    sid = datetime.now().strftime("%Y%m%d_%H%M%S")
+    d = SESSIONS_DIR / sid
+    d.mkdir(parents=True, exist_ok=True)
+    return d
 
 def main():
-    """Main initialization flow"""
     app = QApplication(sys.argv)
-
-    # Show terms dialog FIRST - don't create anything yet
     termsDialog = TermsDialog()
-
-    # These will be created only after acceptance
     config = None
-    journal = None
+    log = None
     systemWindow = None
 
     def onAccepted():
-        nonlocal config, journal, systemWindow
-
+        nonlocal config, log, systemWindow
         print("✓ Shepherd role accepted")
 
-        # NOW create services (after consent)
         config = ConfigManager(CONFIG_PATH)
-        journal = JournalManager(JOURNAL_MD_PATH, JOURNAL_YAML_PATH)
+        session_dir = new_session_dir()
+        log = EventLog(session_dir)
 
-        # Save permissions to config before initialization
-        config.data['permissions'] = termsDialog.permissions
+        config.data["permissions"] = termsDialog.permissions
         config.save()
 
         createConsentRecord(True)
-        journal.writeMarkdown("CONSENT", "Shepherd accepted terms and responsibilities")
-        journal.writeYAML('consent', {
-            'accepted': True,
-            'permissions': termsDialog.permissions
-        })
+        log.consent(True, termsDialog.permissions)
 
-        # Create system window
-        systemWindow = SystemWindow(journal, config)
+        learning_path = session_dir / "learning_state.json"
+        systemWindow = SystemWindow(log, config, learning_path)
 
         termsDialog.close()
         systemWindow.show()
 
     def onDeclined():
         print("✗ Shepherd role declined")
-
-        # Write minimal consent record only
         createConsentRecord(False)
-
+        session_dir = new_session_dir()
+        log = EventLog(session_dir)
+        log.consent(False, termsDialog.permissions)
+        log.close("Declined at terms")
+        log.render_markdown_view(max_lines=1000)
         termsDialog.close()
         app.quit()
 
@@ -1545,7 +1520,6 @@ def main():
     termsDialog.show()
 
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     main()
