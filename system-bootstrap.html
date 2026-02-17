@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Bootstrap — Transparent Local AI Research Framework</title>
+  <meta name="description" content="System Bootstrap: a local-first AI research framework exploring interpretability, consent-based sensing, staged confidence learning, and audit logging." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-pdf-filename="SystemBootstrap_Research.pdf" data-pdf-target="main.container">
+  <header class="header headerSmall">
+    <div class="container">
+      <div class="topActions">
+        <a class="btn btnGhost" href="index.html">← Back</a>
+        <button class="iconBtn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <span class="icon" id="themeIcon">🌙</span>
+        </button>
+      </div>
+
+      <h1 class="name">System Bootstrap</h1>
+      <p class="tagline">Transparent Local AI Research Framework</p>
+
+      <div class="quickLinks">
+        <a class="pill" href="#overview">Overview</a>
+        <a class="pill" href="#architecture">Architecture</a>
+        <a class="pill" href="#experiments">Experiments</a>
+        <a class="pill" href="#research-statement">Research Statement</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="overview">
+      <h2>Overview</h2>
+      <p class="lead">
+        System Bootstrap is a local-first research framework for studying trust, interpretability, and alignment in persistent AI systems.
+        It prioritizes <strong>inspectable state</strong>, <strong>structured audit logs</strong>, and <strong>consent-based sensing</strong>
+        over cloud dependency or model scale.
+      </p>
+
+      <div class="twoCol">
+        <div class="card">
+          <h3>Design goals</h3>
+          <ul class="bullets">
+            <li>Make decision pathways observable (stage, confidence, context snapshot)</li>
+            <li>Keep execution local-first with minimal required dependencies</li>
+            <li>Treat permissions + revocation as core UX, not an afterthought</li>
+            <li>Produce logs suitable for analysis, replay, and research reporting</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What it is not</h3>
+          <ul class="bullets">
+            <li>Not a cloud chatbot wrapper</li>
+            <li>Not a “magic” AI system—mechanics are explicit</li>
+            <li>Not optimized for deployment on machines you don’t control</li>
+            <li>Not dependent on external telemetry or hidden model calls</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <h2>Architecture</h2>
+
+      <div class="card">
+        <h3>Layered model</h3>
+        <ol class="bullets">
+          <li><strong>Consent & governance:</strong> Terms, permission gates, STOP SENSORS, REVOKE CONSENT.</li>
+          <li><strong>Sensory abstraction:</strong> keyboard rhythm class (not raw content), foreground window metadata, audio activity signals.</li>
+          <li><strong>Learning substrate:</strong> staged learning loop (mimic → relate → respond) with confidence growth rules.</li>
+          <li><strong>Audit & replay:</strong> authoritative JSONL event log + optional rendered journal view.</li>
+        </ol>
+      </div>
+
+      <div class="twoCol">
+        <div class="card">
+          <h3>Staged learning</h3>
+          <ul class="bullets">
+            <li><strong>Mimic:</strong> observe new patterns and log exposure.</li>
+            <li><strong>Relate:</strong> form relations using similarity (semantic + context features).</li>
+            <li><strong>Respond:</strong> act only after confidence threshold is met.</li>
+          </ul>
+          <p class="muted">
+            The point is not to claim human-level intelligence; it’s to make learning dynamics and uncertainty visible and testable.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Logging model</h3>
+          <ul class="bullets">
+            <li><code>events.jsonl</code> is the source of truth (append-only)</li>
+            <li>Each response logs: stage, confidence, relations count, best match, and sensor snapshot</li>
+            <li>Session folders isolate long runs to keep files small and auditable</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Security posture:</strong> this is a research tool. The framework is designed to support safe evolution (sandboxing, permission isolation,
+        and auditability) before any wider distribution.
+      </div>
+    </section>
+
+    <section id="experiments">
+      <h2>Planned Experiments</h2>
+
+      <div class="card">
+        <h3>Experiment 1 — Transparency vs Opaque Mode</h3>
+        <p>
+          Compare user trust and perceived alignment between:
+          <strong>Transparent</strong> (shows confidence + memory source + context snapshot) and
+          <strong>Opaque</strong> (response-only) conditions.
+        </p>
+        <ul class="bullets">
+          <li>Likert metrics: trust, understanding, predictability, alignment perception</li>
+          <li>Mechanical metrics: confidence reliability, calibration error (ECE), overconfidence rate</li>
+          <li>Same core engine; only visibility changes</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Experiment 2 — Confidence Calibration</h3>
+        <p>
+          Measure how well the system’s confidence corresponds to correctness on a fixed task set, then improve calibration
+          (e.g., scaling/threshold tuning, better similarity baselines).
+        </p>
+        <ul class="bullets">
+          <li>Calibration curve + Expected Calibration Error (ECE)</li>
+          <li>Track high-confidence wrong cases</li>
+          <li>Compare symbolic baseline vs embedding-based similarity</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="research-statement">
+      <h2>Research Statement</h2>
+
+      <div class="card">
+        <p class="lead">
+          I study how architectural transparency and uncertainty reporting affect trust and alignment in persistent AI systems.
+          My aim is to build frameworks where confidence, context, and state transitions are observable—so trust is earned mechanically, not assumed.
+        </p>
+
+        <h3>Motivation</h3>
+        <p>
+          Many AI systems are powerful but opaque. Persistent systems that interact over time need stronger trust foundations:
+          clear audit trails, explicit consent boundaries, and calibrated uncertainty.
+        </p>
+
+        <h3>Method</h3>
+        <ul class="bullets">
+          <li>Build an inspectable baseline (symbolic similarity + staged learning)</li>
+          <li>Add instrumentation first (logs, metrics, replay)</li>
+          <li>Introduce neural components incrementally (embeddings → small models)</li>
+          <li>Evaluate with mixed metrics: calibration + human trust perception</li>
+        </ul>
+
+        <h3>Outcome</h3>
+        <p>
+          A practical research platform for iterating on interpretability and alignment mechanisms without requiring cloud model dependency.
+        </p>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <p>&copy; <span id="year"></span> Vex Tea · System Bootstrap project page</p>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const stored = localStorage.getItem('theme') || 'dark';
+    html.setAttribute('data-theme', stored);
+    themeIcon.textContent = stored === 'dark' ? '🌙' : '☀️';
+
+    themeToggle.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      themeIcon.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+  </script>
+<script src="assets/js/html2pdf.bundle.min.js"></script>
+</body>
+</html>

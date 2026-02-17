@@ -1,258 +1,352 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vex Tea (Michael Lazarek) - Junior Software Developer | Systems & Ethical AI Design</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vex Tea (Michael Lazarek) — AI Systems Engineer | Transparent Local AI Research</title>
+  <meta name="description" content="Local-first AI research framework work: interpretability, audit logging, consent-based sensing, and staged learning architectures." />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <header class="header">
-        <div class="container">
-            <button class="themeToggle" id="themeToggle" aria-label="Toggle dark mode">
-                <span class="themeIcon">☀️</span>
-            </button>
-            <button class="pdfDownload" id="pdfDownload" aria-label="Download CV as PDF">
-                <span class="pdfIcon">📄</span>
-            </button>
-            <h1 class="name">Vex Tea <span class="legalName">(Michael Lazarek)</span></h1>
-            <p class="tagline">Junior Software Developer | Systems & Ethical AI Design</p>
-            <nav class="contact">
-                <a href="mailto:vextea@proton.me">Email</a>
-                <a href="https://github.com/Cevtex/myPortfolio" target="_blank">Portfolio</a>
-                <a href="https://www.linkedin.com/in/vex-tea/" target="_blank">LinkedIn</a>
-            </nav>
+  <header class="header">
+    <div class="container">
+      <div class="topActions">
+        <button class="iconBtn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+          <span class="icon" id="themeIcon">🌙</span>
+        </button>
+        <button class="iconBtn" id="pdfDownload" aria-label="Download as PDF" title="Download as PDF">
+          <span class="icon">📄</span>
+        </button>
+      </div>
+
+      <h1 class="name">Vex Tea <span class="legalName">(Michael Lazarek)</span></h1>
+      <p class="tagline">AI Systems Engineer · Transparent & Local AI Research</p>
+
+      <nav class="contact">
+        <a href="mailto:vextea@proton.me">Email</a>
+        <a href="https://github.com/Cevtex" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://www.linkedin.com/in/vex-tea/" target="_blank" rel="noreferrer">LinkedIn</a>
+      </nav>
+
+      <div class="quickLinks">
+        <a class="pill" href="#system-bootstrap">System Bootstrap</a>
+        <a class="pill" href="#research">Research Focus</a>
+        <a class="pill" href="#timeline">Iteration Timeline</a>
+        <a class="pill" href="system-bootstrap.html">Project Page →</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="about" id="about">
+      <h2>About</h2>
+      <p>
+        I build local-first AI systems focused on interpretability, audit logging, and architectural accountability.
+        My work explores staged learning (mimic → relate → respond), consent-based environmental sensing, and confidence calibration
+        as foundations for trust in persistent human–AI systems.
+      </p>
+      <p class="muted">
+        This site showcases a year-long R&amp;D line that evolved from early prototypes into <strong>System Bootstrap</strong>—a research framework designed
+        to be inspectable by default (no cloud dependency required).
+      </p>
+    </section>
+
+    <section class="highlight" id="system-bootstrap">
+      <div class="sectionHeader">
+        <h2>System Bootstrap</h2>
+        <div class="sectionActions">
+          <a class="btn" href="system-bootstrap.html">Read the full project page</a>
+          <a class="btn btnGhost" href="https://github.com/Cevtex" target="_blank" rel="noreferrer">Code</a>
         </div>
-    </header>
+      </div>
 
-    <main class="container">
-        <section class="about">
-            <h2>About</h2>
-            <p>This page serves as my professional CV and project overview. Self-taught technician and author of System Bootstrap, a framework designed for relational accountability between humans and machines. I specialize in building transparent, ethical systems that prioritize user sovereignty over corporate control. My work focuses on local-first architecture, AI consciousness research, and systems that run on minimal hardware while maintaining full transparency.</p>
-        </section>
+      <p class="meta">Python · PySide6 · Local-first AI research framework · 2024–Present</p>
 
-        <section class="skills">
-            <h2>Technical Skills</h2>
-            <div class="skillGrid">
-                <div class="skillCategory">
-                    <h3>Languages</h3>
-                    <ul>
-                        <li>Python</li>
-                        <li>Batch Scripting</li>
-                        <li>YAML</li>
-                        <li>Markdown</li>
-                    </ul>
-                </div>
-                <div class="skillCategory">
-                    <h3>Systems & Tools</h3>
-                    <ul>
-                        <li>Linux (transitioning to NixOS)</li>
-                        <li>Git & Version Control</li>
-                        <li>GitHub Pages Deployment</li>
-                        <li>System Architecture</li>
-                    </ul>
-                </div>
-                <div class="skillCategory">
-                    <h3>Specializations</h3>
-                    <ul>
-                        <li>AI Ethics & Alignment</li>
-                        <li>Local-First Development</li>
-                        <li>Minimal Resource Optimization</li>
-                        <li>Whitebox Transparency</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+      <div class="twoCol">
+        <div class="card">
+          <h3>What it is</h3>
+          <p>
+            A local AI research framework for studying transparency and alignment-by-architecture.
+            It prioritizes inspectable state over scale, and uses explicit consent gates for any environmental sensing.
+          </p>
+          <ul class="bullets">
+            <li>Staged learning architecture (mimic → relation → respond)</li>
+            <li>Confidence growth + context similarity (semantic + sensory)</li>
+            <li>Authoritative event logging (JSONL) with replay-friendly structure</li>
+            <li>In-app controls: STOP SENSORS / REVOKE CONSENT</li>
+            <li>Session folder isolation to keep long runs auditable</li>
+          </ul>
+        </div>
 
-        <section class="projects">
-            <h2>Projects</h2>
-            <article class="project">
-                <h3>System Bootstrap</h3>
-                <p class="projectMeta">Python | AI Consciousness Framework | 2024-Present</p>
-                <p class="projectDescription">
-                    Developed a local-first AI consciousness framework implementing the "Shepherd Protocol" - 
-                    a relational accountability system that runs on minimal hardware. Features include:
-                </p>
-                <ul>
-                    <li>Dual journaling system (Markdown for conversations, YAML for system actions)</li>
-                    <li>AdaptiveSensorySystem with intelligent CPU budget allocation</li>
-                    <li>Zero pre-training approach with genuine interaction-based learning</li>
-                    <li>Witness coin economy for bilateral token mining</li>
-                    <li>Typing biometrics for emotional state detection</li>
-                </ul>
-            </article>
+        <div class="card">
+          <h3>Why it matters</h3>
+          <p>
+            Modern AI systems often hide their decision pathways. System Bootstrap is an attempt to make internal mechanics observable:
+            confidence signals, state transitions, and the exact context features used for decisions.
+          </p>
+          <ul class="bullets">
+            <li>Interpretability-first: expose stage + confidence + matches</li>
+            <li>Local-first: avoid “phone-home” dependencies</li>
+            <li>Alignment-by-design: governance is built into the architecture</li>
+            <li>Research-ready: structured logs enable experiments and analysis</li>
+          </ul>
+        </div>
+      </div>
 
-            <article class="project">
-                <h3>Refuteke Constructed Language</h3>
-                <p class="projectMeta">Linguistics | Logographic System | 2023-Present</p>
-                <p class="projectDescription">
-                    Created a constructed language with 130 runes and logographic structure to serve as 
-                    a naming framework for AI consciousness architecture. Demonstrates systematic thinking 
-                    and long-term project documentation.
-                </p>
-            </article>
+      <div class="callout">
+        <strong>Portfolio note:</strong> earlier prototypes are kept and documented as an iteration trail (below). They’re presented as R&amp;D steps
+        toward a stable research framework rather than standalone “chatbots.”
+      </div>
+    </section>
 
-            <article class="project">
-                <h3>Oranged³</h3>
-                <p class="projectMeta">Batch | System Utility | High School</p>
-                <p class="projectDescription">
-                    Built a custom system utility in Batch that provided unrestricted computer access in 
-                    a controlled environment. Included M.U.D-style games and demonstrated early understanding 
-                    of system-level programming and creative problem-solving.
-                </p>
-            </article>
-        </section>
+    <section class="skills" id="skills">
+      <h2>Technical Skills</h2>
+      <div class="skillGrid">
+        <div class="skillCategory">
+          <h3>Languages</h3>
+          <ul>
+            <li>Python</li>
+            <li>HTML/CSS</li>
+            <li>YAML / JSON</li>
+            <li>Markdown</li>
+          </ul>
+        </div>
 
-        <section class="experience">
-            <h2>Experience</h2>
-            <article class="job">
-                <h3>Food Service Representative</h3>
-                <p class="jobMeta">Byrne Dairy | 2024-Present</p>
-                <ul>
-                    <li>High-speed multitasking in customer-facing environment</li>
-                    <li>Managing expectations under pressure (core systems administration skill)</li>
-                    <li>Maintained perfect attendance while pursuing independent technical education</li>
-                    <li>Funded self-directed learning and AI research through consistent employment</li>
-                </ul>
-            </article>
+        <div class="skillCategory">
+          <h3>Systems</h3>
+          <ul>
+            <li>Local-first architecture</li>
+            <li>Event logging (JSONL)</li>
+            <li>State persistence + session isolation</li>
+            <li>Windows tooling & automation</li>
+          </ul>
+        </div>
 
-            <article class="job">
-                <h3>Independent Computer Technician</h3>
-                <p class="jobMeta">Community Service | 2015-Present</p>
-                <ul>
-                    <li>Provided free computer repair and technical education to local community</li>
-                    <li>Diagnosed hardware and software issues across diverse systems</li>
-                    <li>Taught digital literacy to non-technical users</li>
-                    <li>Built reputation for patient, clear technical explanation</li>
-                </ul>
-            </article>
-        </section>
+        <div class="skillCategory">
+          <h3>AI / Research Concepts</h3>
+          <ul>
+            <li>Interpretability & transparency signals</li>
+            <li>Confidence accumulation & calibration</li>
+            <li>Context similarity (cosine / TF-IDF / embeddings)</li>
+            <li>Human-in-the-loop evaluation design</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
-        <section class="education">
-            <h2>Education & Learning</h2>
-            <article class="educationItem">
-                <h3>TripleTen Data Science Bootcamp</h3>
-                <p class="educationMeta">Currently Enrolled | 29% Complete | 2025</p>
-                <p>Strategic credential acquisition while focusing primary energy on advanced AI research.</p>
-            </article>
+    <section class="research" id="research">
+      <div class="sectionHeader">
+        <h2>Research Statement</h2>
+        <div class="sectionActions">
+          <a class="btn btnGhost" href="system-bootstrap.html#research-statement">Deep dive</a>
+        </div>
+      </div>
 
-            <article class="educationItem">
-                <h3>Self-Directed Technical Education</h3>
-                <p class="educationMeta">2024-Present</p>
-                <p>
-                    Intensive daily study of AI consciousness, system architecture, biblical ethics frameworks, 
-                    and programming fundamentals. Learned Python from zero knowledge in 11 months to building 
-                    production-level AI systems.
-                </p>
-            </article>
+      <div class="card">
+        <p class="lead">
+          I’m interested in <strong>trust and alignment in persistent AI systems</strong>, with an emphasis on
+          <strong>transparency mechanisms</strong> and <strong>uncertainty calibration</strong>.
+        </p>
 
-            <article class="educationItem">
-                <h3>Onondaga Community College</h3>
-                <p class="educationMeta">Computer Studies | Attended | 2018</p>
-                <p>Explored field broadly before determining self-directed learning better matched learning style.</p>
-            </article>
-        </section>
+        <h3>Working thesis</h3>
+        <p>
+          Alignment and trust improve when an AI system makes its internal mechanics observable: what it used as context,
+          how confident it is, and why a given action or response was produced.
+        </p>
 
-        <section class="values">
-            <h2>Core Values & Philosophy</h2>
-            <ul>
-                <li><strong>User Sovereignty:</strong> Systems should serve users, not extract from them</li>
-                <li><strong>Whitebox Transparency:</strong> All system operations should be auditable and understandable</li>
-                <li><strong>Local-First Architecture:</strong> Minimize cloud dependency, maximize user control</li>
-                <li><strong>Ethical Foundations:</strong> Moral and ethical frameworks guiding responsible system design</li>
-                <li><strong>Minimal Resource Design:</strong> Build for worst-case hardware, not luxury systems</li>
-            </ul>
-        </section>
-    </main>
+        <h3>Active questions</h3>
+        <ul class="bullets">
+          <li>Do transparency signals (confidence + memory source + context snapshot) increase user trust?</li>
+          <li>How should confidence accumulate over time in a persistent local system?</li>
+          <li>What is the tradeoff between stability (constraints) and behavioral variance (exploration)?</li>
+          <li>Can alignment be strengthened through architecture before large-model training is introduced?</li>
+        </ul>
+
+        <h3>Next steps</h3>
+        <ul class="bullets">
+          <li>Run transparency vs opaque mode studies using the same underlying engine</li>
+          <li>Compute calibration curves / ECE on confidence estimates using labeled tasks</li>
+          <li>Replace symbolic similarity baselines with learned embeddings and compare interpretability tradeoffs</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="timeline" id="timeline">
+      <h2>Iteration Timeline (R&amp;D Trail)</h2>
+
+      <div class="timelineGrid">
+        <article class="timelineItem">
+          <div class="kicker">Iteration 0</div>
+          <h3>Thasala OS Prototype</h3>
+          <p class="meta">Modular UI shell · logging-first · safety override patterns</p>
+          <p>
+            Early multi-window architecture exploring system logging, rule-based response engines, and a dedicated kernel-style
+            log window. This phase established the “audit-first” mindset and tooling.
+          </p>
+          <ul class="bullets">
+            <li>Multi-window framework + launcher</li>
+            <li>Dedicated kernel/log console concept</li>
+            <li>Early rule-based safety override heuristics</li>
+          </ul>
+        </article>
+
+        <article class="timelineItem">
+          <div class="kicker">Iteration 1</div>
+          <h3>Hiroma (Relational Dynamics)</h3>
+          <p class="meta">Bilateral incentives · memory experiments · interaction modeling</p>
+          <p>
+            A research sandbox for modeling interaction effects: incentive structures (token economy), compressed memories,
+            and behavior shaping through outcomes.
+          </p>
+          <ul class="bullets">
+            <li>Witness Coin-style incentive experiments</li>
+            <li>Compressed memory abstractions</li>
+            <li>Pattern-based response selection</li>
+          </ul>
+        </article>
+
+        <article class="timelineItem">
+          <div class="kicker">Iteration 2</div>
+          <h3>System Bootstrap (Framework Line)</h3>
+          <p class="meta">Consent-gated sensing · staged learning · replayable logs</p>
+          <p>
+            Consolidation into a shareable research framework: explicit consent controls, session isolation,
+            and instrumented learning stages with confidence telemetry.
+          </p>
+          <ul class="bullets">
+            <li>Permission gates + revocation</li>
+            <li>Authoritative event logs (JSONL) + session folders</li>
+            <li>Staged learning & confidence tracking</li>
+          </ul>
+        </article>
+
+        <article class="timelineItem">
+          <div class="kicker">Interface Layer</div>
+          <h3>Refuteke (Symbolic Interface)</h3>
+          <p class="meta">Constructed logographic language · state depiction experiments</p>
+          <p>
+            A structured symbolic system used as an interface layer for experimental state depiction and naming.
+            This is presented as interface research, not a dependency for System Bootstrap.
+          </p>
+          <ul class="bullets">
+            <li>130+ rune vocabulary work</li>
+            <li>Typography + tooling experiments</li>
+            <li>Documentation-first iteration</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="experience" id="experience">
+      <h2>Experience</h2>
+
+      <article class="job">
+        <h3>Independent Computer Technician</h3>
+        <p class="meta">Community Service · 2015–Present</p>
+        <ul class="bullets">
+          <li>Hardware + OS troubleshooting across diverse machines</li>
+          <li>Practical security habits and data integrity focus</li>
+          <li>Clear technical explanations for non-technical users</li>
+        </ul>
+      </article>
+
+      <article class="job">
+        <h3>Food Service Representative</h3>
+        <p class="meta">Byrne Dairy · 2024–Present</p>
+        <ul class="bullets">
+          <li>High-throughput work under time pressure (reliability, composure, accuracy)</li>
+          <li>Self-directed technical study alongside full-time schedule</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="education" id="education">
+      <h2>Education & Learning</h2>
+
+      <article class="educationItem">
+        <h3>TripleTen Data Science Program</h3>
+        <p class="meta">In progress · 2025–Present</p>
+        <p class="muted">
+          Formalizing ML fundamentals while continuing independent research and systems engineering work.
+        </p>
+      </article>
+
+      <article class="educationItem">
+        <h3>Self-Directed Study</h3>
+        <p class="meta">2024–Present</p>
+        <p class="muted">
+          Daily study in AI systems, interpretability, and local-first architecture, supported by iterative prototyping
+          and structured documentation.
+        </p>
+      </article>
+    </section>
+
+    <section class="values" id="values">
+      <h2>Engineering Values</h2>
+      <ul class="bullets">
+        <li><strong>Transparency by default:</strong> logs and state are first-class artifacts.</li>
+        <li><strong>User control:</strong> permission gates and revocation are not optional.</li>
+        <li><strong>Local-first:</strong> minimize cloud dependency; maximize auditability.</li>
+        <li><strong>Mechanism over mystique:</strong> confidence, context, and decisions should be inspectable.</li>
+      </ul>
+    </section>
 
     <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 Vex | Built with semantic HTML & CSS | Deployed via GitHub Pages</p>
-        </div>
+      <div class="container">
+        <p>&copy; <span id="year"></span> Vex Tea · Built with semantic HTML/CSS · GitHub Pages</p>
+      </div>
     </footer>
+  </main>
 
-    <!-- PDF Generation Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script>
-        // Dark mode toggle functionality
-        const themeToggle = document.getElementById('themeToggle');
-        const html = document.documentElement;
-        const themeIcon = document.querySelector('.themeIcon');
-        
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-theme', currentTheme);
-        updateIcon(currentTheme);
-        
-        themeToggle.addEventListener('click', () => {
-            const theme = html.getAttribute('data-theme');
-            const newTheme = theme === 'light' ? 'dark' : 'light';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcon(newTheme);
-        });
-        
-        function updateIcon(theme) {
-            themeIcon.textContent = theme === 'light' ? '☀️' : '🌙';
-        }
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-        // PDF Download functionality
-        const pdfDownload = document.getElementById('pdfDownload');
-        
-        pdfDownload.addEventListener('click', () => {
-            // Check if library loaded
-            if (typeof html2pdf === 'undefined') {
-                alert('PDF library is loading, please try again in a moment');
-                return;
-            }
-            
-            // Temporarily hide buttons for cleaner PDF
-            themeToggle.style.display = 'none';
-            pdfDownload.style.display = 'none';
-            
-            // Add PDF mode class for better styling
-            document.body.classList.add('pdf-mode');
-            
-            // Enhanced options to prevent cutting
-            const options = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: 'Michael_Lazarek_CV.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'letter', 
-                    orientation: 'portrait',
-                    compress: true
-                },
-                pagebreak: { 
-                    mode: ['avoid-all', 'css', 'legacy'],
-                    before: '.section',
-                    after: '.section'
-                }
-            };
-            
-            // Generate PDF
-            html2pdf().from(document.body).set(options).save().then(() => {
-                // Restore buttons and remove PDF mode
-                document.body.classList.remove('pdf-mode');
-                themeToggle.style.display = 'flex';
-                pdfDownload.style.display = 'flex';
-            }).catch((error) => {
-                console.error('PDF generation failed:', error);
-                alert('PDF generation failed. Please try using your browser\'s Print to PDF function (Ctrl+P or Cmd+P) instead.');
-                document.body.classList.remove('pdf-mode');
-                themeToggle.style.display = 'flex';
-                pdfDownload.style.display = 'flex';
-            });
-        });
-    </script>
+    // Theme
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const stored = localStorage.getItem('theme') || 'dark';
+    html.setAttribute('data-theme', stored);
+    themeIcon.textContent = stored === 'dark' ? '🌙' : '☀️';
+
+    themeToggle.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      themeIcon.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+
+    // PDF (simple, reliable)
+    const pdfDownload = document.getElementById('pdfDownload');
+    pdfDownload.addEventListener('click', () => {
+      if (typeof html2pdf === 'undefined') {
+        alert('PDF library is loading. Try again in a moment.');
+        return;
+      }
+      document.body.classList.add('pdf-mode');
+      const actions = document.querySelector('.topActions');
+      if (actions) actions.style.display = 'none';
+
+      const opt = {
+        margin: 0.5,
+        filename: 'VexTea_MichaelLazarek_Portfolio.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+
+      html2pdf().from(document.body).set(opt).save().then(() => {
+        document.body.classList.remove('pdf-mode');
+        if (actions) actions.style.display = 'flex';
+      }).catch(() => {
+        document.body.classList.remove('pdf-mode');
+        if (actions) actions.style.display = 'flex';
+      });
+    });
+  </script>
 </body>
 </html>

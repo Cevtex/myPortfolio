@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notebooks Viewer — Vex Tea</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .nbWrap { display: grid; grid-template-columns: 320px 1fr; gap: 16px; min-height: 72vh; }
+    .nbList a { display:block; text-decoration:none; color: var(--text);
+      border:1px solid var(--border); background: var(--panel); padding:10px 12px; border-radius:12px; margin-bottom:10px; }
+    .nbList a:hover { background: var(--panel2); border-color: rgba(167,139,250,0.35); transform: translateY(-1px); }
+    .nbFrame { width:100%; min-height:72vh; border:1px solid var(--border); border-radius:14px; background: rgba(0,0,0,0.12); }
+    @media (max-width: 980px) { .nbWrap { grid-template-columns: 1fr; } .nbFrame { min-height: 70vh; } }
+  </style>
+</head>
+<body data-pdf-mode="iframe" data-pdf-filename="TripleTen_Notebooks.pdf">
+
+<div class="navbarWrap">
+  <div class="navbar">
+    <a class="brand" href="index.html"><strong>Vex</strong><span>AI Framework / Research Platform</span></a>
+    <div class="navLinks">
+      <a href="index.html#system-bootstrap">System Bootstrap</a>
+      <a class="active" href="notebooks.html">Notebooks</a>
+      <a href="projects.html#trippleten">Projects</a>
+      <a href="system-bootstrap.html">Research Platform</a>
+    </div>
+    <div class="navActions">
+      <button class="iconBtn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+        <span class="icon" id="themeIcon">🌙</span>
+      </button>
+      <button class="iconBtn" id="pdfDownload" aria-label="Download as PDF" title="Download as PDF">
+        <span class="icon">📄</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="container">
+    <h1 class="name">Notebooks</h1>
+    <p class="tagline">Rendered views of TripleTen coursework notebooks (exported from .ipynb to HTML)</p>
+  </div>
+</header>
+
+<main class="container surface">
+  <section>
+    <div class="sectionHeader">
+      <h2>Notebook Viewer</h2>
+    </div>
+
+    <div class="nbWrap">
+      <div class="nbList card">
+        <h3>TripleTen</h3>
+        <a href="#" data-nb="assets/jupyter_html/FoundationalAnalysisPart1.html">Foundational Analysis — Part 1</a>
+        <a href="#" data-nb="assets/jupyter_html/FoundationalAnalysisPart2.html">Foundational Analysis — Part 2</a>
+        <a href="#" data-nb="assets/jupyter_html/FoundationalAnalysisPart3.html">Foundational Analysis — Part 3</a>
+        <p class="muted">
+          These are static HTML renders that preserve code cells and outputs.
+        </p>
+      </div>
+
+      <iframe class="nbFrame" id="nbFrame" src="assets/jupyter_html/FoundationalAnalysisPart1.html" loading="lazy"></iframe>
+    </div>
+  </section>
+</main>
+
+<script src="assets/js/html2pdf.bundle.min.js"></script>
+<script src="script.js"></script>
+<script>
+  const frame = document.getElementById('nbFrame');
+  document.querySelectorAll('[data-nb]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      frame.src = a.getAttribute('data-nb');
+    });
+  });
+</script>
+</body>
+</html>
