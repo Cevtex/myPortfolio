@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Commune — Chips</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141418;
+    --border: #2a2a35;
+    --text: #c8c0b0;
+    --muted: #5a5560;
+    --gold: #c8a84b;
+    --gold-dim: #7a6530;
+
+    /* Set 1 */
+    --red: #c0392b;
+    --green: #27ae60;
+    --blue: #2980b9;
+    --white: #dcd6cc;
+    --black-chip: #1a1a2e;
+
+    /* Set 2 */
+    --gray: #7f8c8d;
+    --orange: #e67e22;
+    --purple: #8e44ad;
+    --pink: #e91e8c;
+    --teal: #16a085;
+    --lime: #a3cb38;
+
+    /* Set 3 */
+    --fire: #ff4500;
+    --earth: #8B4513;
+    --wind: #87ceeb;
+    --soul: #da70d6;
+    --time: #ffd700;
+    --diamond: #b9f2ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  header {
+    text-align: center;
+    padding: 2.5rem 1rem 1rem;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--gold);
+    text-shadow: 0 0 40px rgba(200,168,75,0.3);
+  }
+  header p {
+    font-style: italic;
+    color: var(--muted);
+    margin-top: 0.3rem;
+    font-size: 1.05rem;
+  }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 900px) {
+    .game-layout { grid-template-columns: 1fr; }
+  }
+
+  /* PANEL */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1.2rem;
+  }
+  .panel h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* CHIPS */
+  .chip-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.65rem;
+    flex-wrap: wrap;
+  }
+  .chip-label {
+    width: 70px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-transform: capitalize;
+    font-style: italic;
+  }
+  .chip {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-family: 'Cinzel', serif;
+    cursor: default;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .chip:hover { transform: scale(1.15); }
+  .chip-count {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    min-width: 28px;
+    text-align: right;
+  }
+  .chip-count.changed { color: var(--gold); }
+
+  /* chip colors */
+  .c-red    { background: var(--red); }
+  .c-green  { background: var(--green); }
+  .c-blue   { background: var(--blue); }
+  .c-white  { background: var(--white); border-color: #888; }
+  .c-black  { background: #111; border-color: #555; }
+  .c-gray   { background: var(--gray); }
+  .c-orange { background: var(--orange); }
+  .c-purple { background: var(--purple); }
+  .c-pink   { background: var(--pink); }
+  .c-teal   { background: var(--teal); }
+  .c-lime   { background: var(--lime); }
+  .c-fire   { background: radial-gradient(circle, #ff6600, var(--fire)); }
+  .c-earth  { background: var(--earth); }
+  .c-wind   { background: var(--wind); border-color: #aaa; }
+  .c-soul   { background: var(--soul); }
+  .c-time   { background: radial-gradient(circle, #fff8a0, var(--time)); border-color: #aaa; }
+  .c-diamond{ background: radial-gradient(circle, #fff, var(--diamond)); border-color: #aaa; }
+
+  /* ACTIONS */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .action-btn {
+    background: #1c1c24;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.5rem;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1.3;
+    transition: all 0.2s;
+  }
+  .action-btn:hover:not(:disabled) {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    background: #1f1f2a;
+  }
+  .action-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .action-btn.full-width {
+    grid-column: span 2;
+  }
+
+  /* LOG */
+  #log {
+    background: #0a0a0d;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+    height: 180px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  #log p { margin-bottom: 0.2rem; border-bottom: 1px solid #1a1a22; padding-bottom: 0.2rem; }
+  #log p:last-child { border-bottom: none; }
+  .log-ok   { color: #6dbf7e; }
+  .log-err  { color: #e05555; }
+  .log-info { color: var(--gold); }
+
+  /* PILES */
+  .pile-block {
+    background: #111115;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.7rem;
+  }
+  .pile-block h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: var(--gold-dim);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+  .pile-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+  }
+  .pile-chip-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .pile-chip-item .chip { width: 20px; height: 20px; font-size: 0.4rem; }
+  .pile-rule {
+    font-size: 0.78rem;
+    font-style: italic;
+    color: #444;
+    margin-top: 0.3rem;
+  }
+
+  /* Pile form */
+  .pile-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .pile-form input, .pile-form select {
+    background: #0d0d10;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+    flex: 1;
+    min-width: 80px;
+  }
+  .pile-form button {
+    background: #1c1c24;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .pile-form button:hover { background: #242430; }
+
+  .section-divider {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+    text-align: center;
+    margin: 1rem 0 0.5rem;
+    opacity: 0.5;
+  }
+
+  .owner-badge {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    padding: 0.1rem 0.5rem;
+    border-radius: 2px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+  }
+
+  .status-bar {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+  }
+  .status-bar span { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ THE COMMUNE ⬡</h1>
+  <p>A Game of Chips &amp; Exchange</p>
+</header>
+
+<div class="game-layout">
+  <!-- LEFT: Commune + Actions -->
+  <div>
+    <!-- Commune Set 1 -->
+    <div class="panel">
+      <h2>Set I — Dice Chips</h2>
+      <div id="commune-set1"></div>
+      <div class="section-divider">· · ·</div>
+      <div class="action-grid" id="actions-set1"></div>
+    </div>
+
+    <!-- Commune Set 2 -->
+    <div class="panel">
+      <h2>Set II — Spectrum Chips</h2>
+      <div id="commune-set2"></div>
+      <div class="section-divider">· · ·</div>
+      <div class="action-grid" id="actions-set2"></div>
+    </div>
+
+    <!-- Commune Set 3 -->
+    <div class="panel">
+      <h2>Set III — Elemental Chips</h2>
+      <div id="commune-set3"></div>
+      <div class="section-divider">· · ·</div>
+      <div class="action-grid" id="actions-set3"></div>
+    </div>
+
+    <!-- Log -->
+    <div class="panel">
+      <h2>Exchange Log</h2>
+      <div id="log"><p class="log-info">The commune awaits your first exchange.</p></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Player -->
+  <div>
+    <div class="panel">
+      <h2>Your Holdings <span class="owner-badge">Owner</span></h2>
+      <div class="status-bar">
+        Actions this turn: <span id="action-counter">0</span>
+      </div>
+      <div id="player-chips"></div>
+      <button class="action-btn full-width" style="margin-top:0.8rem; grid-column: span 1; width:100%;" onclick="endTurn()">End Turn / Reset Actions</button>
+    </div>
+
+    <!-- Piles -->
+    <div class="panel">
+      <h2>Your Piles</h2>
+      <div id="piles-list"></div>
+      <div class="section-divider">Create a Pile</div>
+      <div class="pile-form">
+        <input id="pile-name" type="text" placeholder="Pile name…" maxlength="24"/>
+        <button onclick="createPile()">+ Create</button>
+      </div>
+      <div style="margin-top:0.7rem;">
+        <div class="pile-form">
+          <select id="pile-move-from">
+            <option value="">Move from pile…</option>
+          </select>
+          <select id="pile-move-chip">
+            <option value="">Chip type…</option>
+          </select>
+          <input id="pile-move-amt" type="number" min="1" placeholder="Amt" style="max-width:50px;"/>
+          <select id="pile-move-to">
+            <option value="">To pile…</option>
+          </select>
+          <button onclick="moveBetweenPiles()">Move</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const SET1 = ['red','green','blue','white','black'];
+const SET2 = ['gray','orange','purple','pink','teal','lime'];
+const SET3 = ['fire','earth','wind','soul','time','diamond'];
+const ALL_CHIPS = [...SET1, ...SET2, ...SET3];
+
+const COMMUNE_START = {
+  red:50, green:50, blue:50, white:100, black:75,
+  gray:100, orange:100, purple:100, pink:100, teal:100, lime:100,
+  fire:0, earth:0, wind:0, soul:0, time:0, diamond:0
+};
+
+let commune = {...COMMUNE_START};
+let player = { red:0, green:0, blue:0, white:0, black:0, gray:0, orange:0, purple:0, pink:0, teal:0, lime:0, fire:0, earth:0, wind:0, soul:0, time:0, diamond:0 };
+let isOwner = false;
+let actionsThisTurn = 0;
+let piles = []; // {name, chips:{}, rule:''}
+let initialized = false;
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+function initGame() {
+  renderAll();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function chipEl(type, small=false) {
+  return `<div class="chip c-${type}" title="${type}">${type === 'diamond' ? '◆' : type === 'time' ? '⧖' : ''}</div>`;
+}
+
+function renderChipRow(container, obj, types) {
+  container.innerHTML = '';
+  types.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'chip-row';
+    row.innerHTML = `${chipEl(t)}<span class="chip-label">${t}</span><span class="chip-count" id="cnt-${container.id}-${t}">${obj[t] ?? 0}</span>`;
+    container.appendChild(row);
+  });
+}
+
+function renderAll() {
+  renderChipRow(document.getElementById('commune-set1'), commune, SET1);
+  renderChipRow(document.getElementById('commune-set2'), commune, SET2);
+  renderChipRow(document.getElementById('commune-set3'), commune, SET3);
+  renderChipRow(document.getElementById('player-chips'), player, ALL_CHIPS);
+  document.getElementById('action-counter').textContent = actionsThisTurn;
+  renderPiles();
+  buildPileSelects();
+  buildActions();
+}
+
+function renderPiles() {
+  const el = document.getElementById('piles-list');
+  if (piles.length === 0) {
+    el.innerHTML = '<p style="font-size:0.8rem;color:var(--muted);font-style:italic;">No piles yet. Create one below.</p>';
+    return;
+  }
+  el.innerHTML = piles.map((p, i) => {
+    const chipItems = ALL_CHIPS.filter(t => (p.chips[t]||0) > 0)
+      .map(t => `<div class="pile-chip-item">${chipEl(t)}<span>${p.chips[t]}</span></div>`).join('');
+    return `<div class="pile-block">
+      <h3>${p.name} <span style="color:var(--muted);font-size:0.7rem;font-family:'Crimson Pro'">(pile ${i+1})</span></h3>
+      <div class="pile-chips">${chipItems || '<span style="font-size:0.78rem;color:#333">empty</span>'}</div>
+      ${p.rule ? `<div class="pile-rule">Rule: ${p.rule}</div>` : ''}
+      <div style="display:flex;gap:0.4rem;margin-top:0.4rem;flex-wrap:wrap;">
+        <button class="action-btn" style="font-size:0.72rem;padding:0.25rem 0.5rem;" onclick="promptPileRule(${i})">Set Rule</button>
+        <button class="action-btn" style="font-size:0.72rem;padding:0.25rem 0.5rem;" onclick="removePile(${i})">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildPileSelects() {
+  const names = ['<option value="">Move from pile…</option>', ...piles.map((p,i) => `<option value="${i}">${p.name}</option>`)].join('');
+  const to = ['<option value="">To pile…</option>', '<option value="hand">→ Your Hand</option>', ...piles.map((p,i) => `<option value="${i}">${p.name}</option>`)].join('');
+  const chips = ['<option value="">Chip type…</option>', ...ALL_CHIPS.map(t => `<option value="${t}">${t}</option>`)].join('');
+  document.getElementById('pile-move-from').innerHTML = names;
+  document.getElementById('pile-move-to').innerHTML = to;
+  document.getElementById('pile-move-chip').innerHTML = chips;
+}
+
+function buildActions() {
+  // Set 1 actions
+  const s1 = document.getElementById('actions-set1');
+  s1.innerHTML = `
+    <button class="action-btn full-width" onclick="joinCommune()" ${isOwner ? 'disabled' : ''}>
+      ${isOwner ? '✓ Already Owner' : 'Join Commune (collect starter chips)'}
+    </button>
+    <button class="action-btn" onclick="ownerCollect()" ${!isOwner ? 'disabled' : ''}>
+      Collect 2 red/green/blue
+    </button>
+    <button class="action-btn" onclick="tradeForWhite()" ${!isOwner ? 'disabled' : ''}>
+      Give 2r+2g+2b → 1 White
+    </button>
+    <button class="action-btn" onclick="tradeWhiteForBlack()">
+      5 White → 1 Black
+    </button>
+    <button class="action-btn" onclick="tradeWhiteFor4Colors()">
+      5 White → 4 any Set1 colors
+    </button>
+  `;
+
+  // Set 2 actions
+  const s2 = document.getElementById('actions-set2');
+  s2.innerHTML = `
+    <button class="action-btn" onclick="openSet2Trade()">
+      1 White → 1 Set2 color
+    </button>
+    <button class="action-btn" onclick="tradeSet2ForGray()">
+      Any Set2 color → 1 Gray
+    </button>
+    <button class="action-btn" onclick="tradeGrayForWhite()">
+      1 Gray → 1 White
+    </button>
+  `;
+
+  // Set 3 actions
+  const s3 = document.getElementById('actions-set3');
+  s3.innerHTML = `
+    <button class="action-btn" onclick="tradeBlackForTime()">
+      1 Black → Time
+    </button>
+    <button class="action-btn" onclick="tradeTimeForBlack()">
+      Time → 1 Black
+    </button>
+    <button class="action-btn" onclick="openElementForTime()">
+      1 Element → Time
+    </button>
+    <button class="action-btn" onclick="openTimeForElements()">
+      Time → All Elements
+    </button>
+    <button class="action-btn" onclick="openElementForDiamond()">
+      1 Element → Diamond
+    </button>
+    <button class="action-btn" onclick="openDiamondForElement()">
+      Diamond → 1 Element
+    </button>
+  `;
+}
+
+// ─── LOGGING ─────────────────────────────────────────────────────────────────
+function log(msg, type='ok') {
+  const el = document.getElementById('log');
+  const p = document.createElement('p');
+  p.className = `log-${type}`;
+  p.textContent = msg;
+  el.insertBefore(p, el.firstChild);
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+function countAction() {
+  actionsThisTurn++;
+  document.getElementById('action-counter').textContent = actionsThisTurn;
+}
+
+function endTurn() {
+  log(`Turn ended. ${actionsThisTurn} action(s) used.`, 'info');
+  actionsThisTurn = 0;
+  renderAll();
+}
+
+function give(from, to, chip, amt=1) {
+  if ((from[chip]||0) < amt) return false;
+  from[chip] -= amt;
+  to[chip] = (to[chip]||0) + amt;
+  return true;
+}
+
+function joinCommune() {
+  if (isOwner) return log('You are already an owner.', 'err');
+  if (commune.red < 5 || commune.green < 5 || commune.blue < 5)
+    return log('Commune lacks starter chips.', 'err');
+  give(commune, player, 'red', 5);
+  give(commune, player, 'green', 5);
+  give(commune, player, 'blue', 5);
+  isOwner = true;
+  // init hand pile
+  piles.push({name:'Hand', chips:{}, rule:'Your default holding pile.'});
+  log('Welcome, Owner. Collected 5 red, 5 green, 5 blue.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function ownerCollect() {
+  if (!isOwner) return log('Only owners can collect.', 'err');
+  if (commune.red < 2 || commune.green < 2 || commune.blue < 2)
+    return log('Commune lacks chips.', 'err');
+  give(commune, player, 'red', 2);
+  give(commune, player, 'green', 2);
+  give(commune, player, 'blue', 2);
+  log('Collected 2 red, 2 green, 2 blue from commune.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeForWhite() {
+  if (!isOwner) return log('Only owners may do this.', 'err');
+  if (player.red < 2 || player.green < 2 || player.blue < 2)
+    return log('Need 2 red, 2 green, 2 blue.', 'err');
+  if (commune.white < 1) return log('Commune has no white chips.', 'err');
+  give(player, commune, 'red', 2);
+  give(player, commune, 'green', 2);
+  give(player, commune, 'blue', 2);
+  give(commune, player, 'white', 1);
+  log('Traded 2r+2g+2b → 1 White.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeWhiteForBlack() {
+  if (player.white < 5) return log('Need 5 white chips.', 'err');
+  if (commune.black < 1) return log('Commune has no black chips.', 'err');
+  give(player, commune, 'white', 5);
+  give(commune, player, 'black', 1);
+  log('Traded 5 White → 1 Black.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeWhiteFor4Colors() {
+  if (player.white < 5) return log('Need 5 white chips.', 'err');
+  const colors = SET1.filter(c => c !== 'white' && c !== 'black');
+  // pick 4 any from colors (red,green,blue) — here we pick 1 each of r,g,b + 1 more red as example; let user pick
+  // Simple: give 1 each of red,green,blue and ask which 4th
+  const choice = prompt('Choose 4 colors from: red, green, blue (comma separated, e.g. red,green,blue,red)');
+  if (!choice) return;
+  const picks = choice.toLowerCase().split(',').map(s=>s.trim()).filter(s=>colors.includes(s));
+  if (picks.length !== 4) return log('Please pick exactly 4 colors (red/green/blue).', 'err');
+  for (const c of picks) {
+    if (commune[c] < 1) return log(`Commune lacks ${c}.`, 'err');
+  }
+  give(player, commune, 'white', 5);
+  picks.forEach(c => give(commune, player, c, 1));
+  log(`Traded 5 White → ${picks.join(', ')}.`, 'ok');
+  countAction();
+  renderAll();
+}
+
+function openSet2Trade() {
+  if (player.white < 1) return log('Need 1 white chip.', 'err');
+  const choice = prompt('Choose a Set 2 color: gray, orange, purple, pink, teal, lime');
+  if (!choice) return;
+  const c = choice.toLowerCase().trim();
+  if (!SET2.includes(c)) return log('Invalid Set 2 color.', 'err');
+  if (commune[c] < 1) return log(`Commune has no ${c}.`, 'err');
+  give(player, commune, 'white', 1);
+  give(commune, player, c, 1);
+  log(`Traded 1 White → 1 ${c}.`, 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeSet2ForGray() {
+  const choice = prompt('Give which Set 2 color for Gray? (orange, purple, pink, teal, lime)');
+  if (!choice) return;
+  const c = choice.toLowerCase().trim();
+  if (!SET2.filter(x=>x!=='gray').includes(c)) return log('Invalid color.', 'err');
+  if (player[c] < 1) return log(`You have no ${c}.`, 'err');
+  if (commune.gray < 1) return log('Commune has no gray.', 'err');
+  give(player, commune, c, 1);
+  give(commune, player, 'gray', 1);
+  log(`Traded 1 ${c} → 1 Gray.`, 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeGrayForWhite() {
+  if (player.gray < 1) return log('Need 1 gray chip.', 'err');
+  if (commune.white < 1) return log('Commune has no white.', 'err');
+  give(player, commune, 'gray', 1);
+  give(commune, player, 'white', 1);
+  log('Traded 1 Gray → 1 White.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeBlackForTime() {
+  if (player.black < 1) return log('Need 1 black chip.', 'err');
+  give(player, commune, 'black', 1);
+  player.time = (player.time || 0) + 1; // generated
+  log('Traded 1 Black → Time (generated).', 'ok');
+  countAction();
+  renderAll();
+}
+
+function tradeTimeForBlack() {
+  if (player.time < 1) return log('Need a Time chip.', 'err');
+  if (commune.black < 1) return log('Commune has no black.', 'err');
+  player.time -= 1; // consumed
+  give(commune, player, 'black', 1);
+  log('Traded Time → 1 Black.', 'ok');
+  countAction();
+  renderAll();
+}
+
+function openElementForTime() {
+  const els = SET3.filter(e => e !== 'time' && e !== 'diamond');
+  const choice = prompt(`Which element to trade for Time? (${els.join(', ')})`);
+  if (!choice) return;
+  const c = choice.toLowerCase().trim();
+  if (!els.includes(c)) return log('Invalid element.', 'err');
+  if (player[c] < 1) return log(`You have no ${c}.`, 'err');
+  player[c] -= 1; // consumed
+  player.time = (player.time || 0) + 1; // generated
+  log(`Traded 1 ${c} → Time (generated).`, 'ok');
+  countAction();
+  renderAll();
+}
+
+function openTimeForElements() {
+  if (player.time < 1) return log('Need a Time chip.', 'err');
+  const els = SET3.filter(e => e !== 'time' && e !== 'diamond');
+  player.time -= 1; // consumed
+  els.forEach(e => { player[e] = (player[e] || 0) + 1; }); // generated
+  log('Traded Time → fire, earth, wind, soul (generated).', 'ok');
+  countAction();
+  renderAll();
+}
+
+function openElementForDiamond() {
+  const els = SET3.filter(e => e !== 'time' && e !== 'diamond');
+  const choice = prompt(`Which element for Diamond? (${els.join(', ')})`);
+  if (!choice) return;
+  const c = choice.toLowerCase().trim();
+  if (!els.includes(c)) return log('Invalid element.', 'err');
+  if (player[c] < 1) return log(`You have no ${c}.`, 'err');
+  player[c] -= 1; // consumed
+  player.diamond = (player.diamond || 0) + 1; // generated
+  log(`Traded 1 ${c} → Diamond (generated).`, 'ok');
+  countAction();
+  renderAll();
+}
+
+function openDiamondForElement() {
+  if (player.diamond < 1) return log('Need a Diamond chip.', 'err');
+  const els = SET3.filter(e => e !== 'time' && e !== 'diamond');
+  const choice = prompt(`Receive which element? (${els.join(', ')})`);
+  if (!choice) return;
+  const c = choice.toLowerCase().trim();
+  if (!els.includes(c)) return log('Invalid element.', 'err');
+  player.diamond -= 1; // consumed
+  player[c] = (player[c] || 0) + 1; // generated
+  log(`Traded Diamond → 1 ${c} (generated).`, 'ok');
+  countAction();
+  renderAll();
+}
+
+// ─── PILES ───────────────────────────────────────────────────────────────────
+function createPile() {
+  const name = document.getElementById('pile-name').value.trim();
+  if (!name) return log('Enter a pile name.', 'err');
+  if (piles.find(p => p.name.toLowerCase() === name.toLowerCase()))
+    return log('Pile name already exists.', 'err');
+  piles.push({name, chips:{}, rule:''});
+  document.getElementById('pile-name').value = '';
+  log(`Created pile: "${name}".`, 'info');
+  renderAll();
+}
+
+function removePile(i) {
+  const p = piles[i];
+  // return chips to player hand
+  ALL_CHIPS.forEach(c => {
+    if ((p.chips[c]||0) > 0) player[c] = (player[c]||0) + p.chips[c];
+  });
+  log(`Removed pile "${p.name}", chips returned to hand.`, 'info');
+  piles.splice(i, 1);
+  renderAll();
+}
+
+function promptPileRule(i) {
+  const rule = prompt(`Set rule for pile "${piles[i].name}":`);
+  if (rule !== null) {
+    piles[i].rule = rule;
+    log(`Rule set for "${piles[i].name}".`, 'info');
+    renderAll();
+  }
+}
+
+function moveBetweenPiles() {
+  const fromIdx = document.getElementById('pile-move-from').value;
+  const toVal   = document.getElementById('pile-move-to').value;
+  const chip    = document.getElementById('pile-move-chip').value;
+  const amt     = parseInt(document.getElementById('pile-move-amt').value) || 0;
+
+  if (fromIdx === '' || !toVal || !chip || !amt) return log('Fill all move fields.', 'err');
+  const fromPile = piles[parseInt(fromIdx)];
+  if ((fromPile.chips[chip]||0) < amt) return log(`Pile lacks ${amt} ${chip}.`, 'err');
+
+  fromPile.chips[chip] -= amt;
+
+  if (toVal === 'hand') {
+    player[chip] = (player[chip]||0) + amt;
+    log(`Moved ${amt} ${chip} from "${fromPile.name}" to hand.`, 'ok');
+  } else {
+    const toPile = piles[parseInt(toVal)];
+    toPile.chips[chip] = (toPile.chips[chip]||0) + amt;
+    log(`Moved ${amt} ${chip} from "${fromPile.name}" to "${toPile.name}".`, 'ok');
+  }
+  renderAll();
+}
+
+// Add to pile from hand — quick utility via prompt
+// (accessible via future enhancement; for now moves happen pile-to-pile)
+
+initGame();
+</script>
+</body>
+</html>
